@@ -1,0 +1,729 @@
+#!/bin/bash
+#Defining usage and exiting (function)
+usage () {
+ echo "CATS-rf version 1.0.0 - reference-free transcriptome assembly assessment" >&2
+ echo "USAGE ${0} [OPTIONS] TRANSCRIPTOME READS1 [READS2]" >&2
+ echo "Library type options:" >&2
+ echo "-C: Paired- vs. signle-end library configuratiom: pe = paired-end, se = single-end, default: pe" >&2
+ echo "-S: Library strandness, fr = forward-reverse, rf = reverse-forward, u = unstranded, a = automatic detection, default: u" >&2
+ echo "-Q: Phred quality encoding of FASTQ files, 33 = phred33, 64 = phred64, default: 33" >&2
+ echo "Read mapping, transcript quantification, and read assignment options:" >&2
+ echo "-R: Random seed for read mapping, transcript quantification, and read assignment, default: 12345" >&2
+ echo "-N: Maximum number of distinct mappings per read, default: 10" >&2
+ echo "-m: Estimated mean of fragment length needed for transcript quantification (single-end mode only)" >&2
+ echo "-s: Estimated st. dev. of fragment length needed for transcript quantification (single-end mode only)" >&2
+ echo "Coverage analysis options:" >&2
+ echo "-i: Per-base coverage distribution breakpoints (specified with x,y,z...), default: 0,5,10,20,40,60,80,100" >&2
+ echo "-p: Per-transcript proportion of covered bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
+ echo "-r: Mean transcript coverage distribution breakpoints (specified with x,y,z...), default: 0,5,10,20,40,60,80,100" >&2
+ echo "-l: Proportion of transcript length for positional relative coverage distribution analysis, default: 0.01" >&2
+ echo "-n: Proportion of transcript length for transcript end definition when calculating mean transcript end coverage, default: 0.02" >&2
+ echo "-k: Rolling window size for local coverage calculation (in bp) when defining low-coverage regions (LCR), default: 10 bp" >&2
+ echo "-z: Local coverage threshold for LCR characterization, default: 3" >&2
+ echo "-u: Per-transcript proportion of LCR bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
+ echo "-w: Coverage penalty weight, default: 1.5" >&2
+ echo "-e: LCR extension penalty, default: 0.5" >&2
+ echo "Accuracy analysis options:" >&2
+ echo "-I: Per-base accuracy distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1" >&2
+ echo "-A: Minimum accuracy for a base to be considered accurate, default: 0.95" >&2
+ echo "-P: Per-transcript proportion of accurate bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1"  >&2
+ echo "-L: Proportion of transcript length for positional accuracy distribution analysis, default: 0.01" >&2
+ echo "-K: Rolling window size for local accuracy calculation (in bp) when defining low-accuracy regions (LAR), default: 10 bp" >&2
+ echo "-Z: Local accuracy threshold for LAR characterization, default: 0.98" >&2
+ echo "-U: Per-transcript proportion of LAR bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1" >&2
+ echo "-E: LAR extension penalty, default: 0.1" >&2
+ echo "Paired-end analysis options:" >&2
+ echo "-T: Number of splits performed on read pair mapping table, default: 3" >&2
+ echo "-d: Maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation (in bp), default: 40 bp" >&2
+ echo "-x: Multiplicative factor for lower distance outlier threshold calculation, default: 8" >&2
+ echo "-X: Multiplicative factor for higher distance outlier threshold calculation, default: 10" >&2
+ echo "-c: Correction factor for distance outlier threshold calculation, default: 5" >&2
+ echo "-y: Per-transcript proportion of improperly paired reads within a transcript distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
+ echo "-f: Minimum number of bridging events for transcripts to be considered fragmented, default: 3" >&2
+ echo "-F: Per-transcript proportion of reads whose pairs map to other transcripts distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
+ echo "-a: Alpha compression factor for beta-like transformation applied to bridge index during integrity score component calculation, default: 7" >&2
+ echo "-b: Beta compression factor for beta-like transformation applied to bridge index during integrity score component calculation, default: 0.5" >&2
+ echo "General options:" >&2
+ echo "-t: Number of CPU threads, default: 10" >&2
+ echo "-G: Percentage of available RAM used by GNU sort, default: 50" >&2
+ echo "-M: Memory block size for GNU Parallel, default: 512M" >&2
+ echo "-D: Output directory name, default: TRANSCRIPTOME_CATS_rf_dir" >&2
+ echo "-o: Output file prefix, default: TRANSCRIPTOME_CATS_rf" >&2
+ echo "-O: Overwrite the results directory, default: off" >&2
+ echo "-h: Show usage information" >&2
+ exit 1
+}
+
+#Addingg date and time to log messages (function)
+write_log () {
+ local LOG_TYPE="${1}"
+ shift 1
+ local MESSAGE="${*}"
+ echo "$(date '+%d/%m/%Y %H:%M:%S'):${LOG_TYPE}: ${MESSAGE}" >&2
+}
+
+#Checking executables (function)
+check_executable () {
+ for EXECUTABLE in "${@}"
+ do
+  if ! [[ -x $(command -v "${EXECUTABLE}") ]]
+  then
+   write_log ERROR "${EXECUTABLE} could not be found. Please check the supplied path"
+   exit 1
+  fi
+ done
+}
+
+#Checking the supplied files (function)
+check_files() {
+ for FILE in "${@}"
+ do
+  if [[ -f "${FILE}" ]]
+  then
+   if ! [[ -s "${FILE}" ]]
+   then
+    write_log ERROR "${FILE} is empty"
+    exit 1
+   fi
+  else
+   write_log ERROR "${FILE} cannot be found (or is not a file). Please check the supplied path"
+   exit 1
+  fi
+ done
+}
+
+#Checking the exit status of the last command (function)
+check_exit_status () {
+ local EXIT_STATUS="${?}"
+ local MESSAGE="${*}"
+ if [[ "${EXIT_STATUS}" -ne 0 ]]
+ then
+  write_log ERROR "${MESSAGE}"
+  exit 1
+ fi
+}
+
+#Testing numerical arguments (function)
+test_numeric_arg () {
+ local NUM_REGEX='^[0-9]+(\.[0-9]+)?$'
+ local NUMERIC_ARG="${1}"
+ local VAR_NAME="${2}"
+ local ARG_DEF_VALUE="${3}"
+ shift 3
+ local MESSAGE="${*}"
+ if [[ -n "${NUMERIC_ARG}" && ! "${NUMERIC_ARG}" =~ ${NUM_REGEX} ]]
+ then
+  export "${VAR_NAME}"="${ARG_DEF_VALUE}"
+  write_log WARNING "${MESSAGE}"
+ fi
+}
+
+#Checking the size of sorted files (function)
+check_sorted_files () {
+ local UNSORTED_FILE="${1}"
+ local SORT_COL_N="${2}"
+ local SORTED_FILE="sorted_${UNSORTED_FILE}"
+ UNSORTED_LINE_N=$(wc -l < "${UNSORTED_FILE}")
+ SORTED_LINE_N=$(wc -l < "${SORTED_FILE}")
+ if [[ "${UNSORTED_LINE_N}" -ne "${SORTED_LINE_N}" ]]
+ then
+  sort -n -k "${SORT_COL_N}" "${UNSORTED_FILE}" > "${SORTED_FILE}"
+ fi
+ rm "${UNSORTED_FILE}"
+}
+
+#Filtering files by row number (function)
+filter_by_id () {
+ local FILTER_COL_N="${1}"
+ local ID_FILE="${2}"
+ local FILE_TO_FILTER="${3}"
+ local FILTER_OUTPUT="${4}"
+ awk -v col="${FILTER_COL_N}" 'NR==FNR { filter_keys[$1]; next } ($col in filter_keys)' "${ID_FILE}" "${FILE_TO_FILTER}" > "${FILTER_OUTPUT}"
+}
+export -f filter_by_id
+
+#Defining default parameters
+LIB_CONF="pe"
+STRANDNESS="u"
+QUALITY_ENC=33
+SEED=12345
+READ_MAP_N=10
+BASE_COV_BREAKS="0,5,10,20,40,60,80,100"
+COV_PROP_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
+TR_COV_MEAN_BREAKS="0,5,10,20,40,60,80,100"
+POS_REL_COV_PROP=0.01
+COV_MEAN_END_PROP=0.02
+LOCAL_COV_WINDOW_SIZE=10
+LOCAL_COV_THR=3
+LCR_PROP_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
+COV_PEN_WEIGHT=1.5
+LCR_EX_PEN=0.5
+BASE_ACC_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1"
+BASE_ACC_THR=0.95
+ACC_BASE_PROP_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1"
+POS_ACC_PROP=0.01
+LOCAL_ACC_WINDOW_SIZE=10
+LOCAL_ACC_THR=0.98
+LAR_PROP_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1"
+LAR_EX_PEN=0.1
+PAIR_TABLE_SPLIT_N=3
+INCOMP_BRIDGE_TR_END_DIST=40
+DIST_THR_FACT_LOWER=8
+DIST_THR_FACT_HIGHER=10
+DIST_THR_CORR_FACT=5
+IMP_WITHIN_READ_PROP_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
+FRAG_TR_BRIDGE_N=3
+DIFF_TR_PAIR_READ_PROP_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
+ALPHA_COMP_FACT=7
+BETA_COMP_FACT=0.5
+THREAD_N=10
+SORT_MEM_PERC=50
+MEMORY_BLOCK="512M"
+OVERWRITE_RES="F"
+
+#Saving the script call
+CALL="$(echo "${0} ${@}")"
+
+#Defining options
+while getopts ":C:S:Q:R:N:m:s:i:p:r:l:n:k:z:u:w:e:I:A:P:L:K:Z:U:E:T:d:x:X:c:y:f:F:a:b:t:G:M:D:o:Oh" OPT; do
+ case "${OPT}" in
+  C) LIB_CONF="${OPTARG}"
+     ;;
+  S) STRANDNESS="${OPTARG}"
+     ;;
+  Q) QUALITY_ENC="${OPTARG}"
+     ;;
+  R) SEED="${OPTARG}"
+     ;;
+  N) READ_MAP_N="${OPTARG}"
+     ;;
+  m) MEAN_INS_SIZE="${OPTARG}"
+     ;;
+  s) SD_INS_SIZE="${OPTARG}"
+     ;;
+  i) BASE_COV_BREAKS="${OPTARG}"
+     ;;
+  p) COV_PROP_BREAKS="${OPTARG}"
+     ;;
+  r) TR_COV_MEAN_BREAKS="${OPTARG}"
+     ;;
+  l) POS_REL_COV_PROP="${OPTARG}"
+     ;;
+  n) COV_MEAN_END_PROP="${OPTARG}"
+     ;;
+  k) LOCAL_COV_WINDOW_SIZE="${OPTARG}"
+     ;;
+  z) LOCAL_COV_THR="${OPTARG}"
+     ;;
+  u) LCR_PROP_BREAKS="${OPTARG}"
+     ;;
+  w) COV_PEN_WEIGHT="${OPTARG}"
+     ;;
+  e) LCR_EX_PEN="${OPTARG}"
+     ;;
+  I) BASE_ACC_BREAKS="${OPTARG}"
+     ;;
+  A) BASE_ACC_THR="${OPTARG}"
+     ;;
+  P) ACC_BASE_PROP_BREAKS="${OPTARG}"
+     ;;
+  L) POS_ACC_PROP="${OPTARG}"
+     ;;
+  K) LOCAL_ACC_WINDOW_SIZE="${OPTARG}"
+     ;;
+  Z) LOCAL_ACC_THR="${OPTARG}"
+     ;;
+  U) LAR_PROP_BREAKS="${OPTARG}"
+     ;;
+  E) LAR_EX_PEN="${OPTARG}"
+     ;;
+  T) PAIR_TABLE_SPLIT_N="${OPTARG}"
+     ;;
+  d) INCOMP_BRIDGE_TR_END_DIST="${OPTARG}"
+     ;;
+  x) DIST_THR_FACT_LOWER="${OPTARG}"
+     ;;
+  X) DIST_THR_FACT_HIGHER="${OPTARG}"
+     ;;
+  c) DIST_THR_CORR_FACT="${OPTARG}"
+     ;;
+  y) IMP_WITHIN_READ_PROP_BREAKS="${OPTARG}"
+     ;;
+  f) FRAG_TR_BRIDGE_N="${OPTARG}"
+     ;;
+  F) DIFF_TR_PAIR_READ_PROP_BREAKS="${OPTARG}"
+     ;;
+  a) ALPHA_COMP_FACT="${OPTARG}"
+     ;;
+  b) BETA_COMP_FACT="${OPTARG}"
+     ;;
+  t) THREAD_N="${OPTARG}"
+     ;;
+  G) SORT_MEM_PERC="${OPTARG}"
+     ;;
+  M) MEMORY_BLOCK="${OPTARG}"
+     ;;
+  D) OUT_DIR="${OPTARG}"
+     ;;
+  o) OUT_PREF="${OPTARG}"
+     ;;
+  O) OVERWRITE_RES="T"
+     ;;
+  h) usage
+     ;;
+  ?) write_log ERROR "Unknown flag supplied: -${OPTARG}"
+     usage
+     ;;
+ esac
+done
+shift "$(( OPTIND - 1 ))"
+
+#Displaying usage when calling the script without arguments
+if [[ "${#}" -eq 0 ]]
+then
+ usage
+fi
+
+#Save log output to file and STDERR
+LOG_FILE="CATS_rf_run_$(date '+%Y%m%d_%H%M%S')"
+exec 3>&2
+exec 2> >(tee "$LOG_FILE" >&3)
+
+#Printing welcome message
+echo "Welcome to CATS-rf transcriptome assembly quality assessment tool (version 1.0.0). Find us on https://github.com/bodulic/CATS-rf/tree/main"
+
+#Checking executable requirements
+check_executable R bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
+
+#Checking the library configuration argument
+if [[ "${LIB_CONF}" != "pe" && "${LIB_CONF}" != "se" ]]
+then
+ write_log ERROR "Please supply a valid argument for library configuration (paired-end or single-end)"
+ exit 1
+fi
+
+#Checking the library strandness argument
+if [[ "${LIB_CONF}" = "pe" && "${STRANDNESS}" != "fr" && "${STRANDNESS}" != "rf" && "${STRANDNESS}" != "u" && "${STRANDNESS}" != "a" ]]
+then
+ write_log ERROR "Please supply a valid argument for library strandness"
+ exit 1
+fi
+
+#Checking if the mean and st. dev. of fragment length are supplied and are numeric in single-end mode
+if [[ "${LIB_CONF}" = "se" ]]
+then
+ test_numeric_arg "${MEAN_INS_SIZE}" "MEAN_INS_SIZE" "" "Supplied an incorrect value for the estimated mean of fragment length needed for transcript quantification"
+ test_numeric_arg "${SD_INS_SIZE}" "SD_INS_SIZE" "" "Supplied an incorrect value for the estimated st. dev. of fragment length needed for transcript quantification"
+ if [[ -z "${MEAN_INS_SIZE}" || -z "${SD_INS_SIZE}" ]]
+ then
+  write_log ERROR "Please supply valid arguments for the estimated mean and st. dev. of fragment length in single-end mode"
+  exit 1
+ fi
+fi
+
+#Checking if the correct number of files is supplied
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ if [[ "${#}" -ne 3 ]]
+ then
+  write_log ERROR "Invalid number of files supplied for paired-end mode"
+  exit 1
+ fi
+else
+ if [[ "${#}" -ne 2 ]]
+ then
+  write_log ERROR "Invalid number of files supplied for single-end mode"
+  exit 1
+ fi
+fi
+
+#Assigning positional arguments
+TRANSCRIPTOME="${1}"
+READS1="${2}"
+READS2="${3}"
+
+#Checking the supplied files
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ check_files "${TRANSCRIPTOME}" "${READS1}" "${READS2}"
+else
+ check_files "${TRANSCRIPTOME}" "${READS1}"
+fi
+
+#Setting the default directory name
+if [[ -z "${OUT_DIR}" ]]
+then
+ OUT_DIR="$(basename "${TRANSCRIPTOME}")_CATS_rf_dir"
+fi
+
+#Setting the default output prefix
+if [[ -z "${OUT_PREF}" ]]
+then
+ OUT_PREF="$(basename "${TRANSCRIPTOME}")_CATS_rf"
+fi
+
+#Checking the overwrite argument
+if [[ -d "${OUT_DIR}" || -f "${OUT_DIR}" ]]
+then
+ if [[ "${OVERWRITE_RES}" = "F" ]]
+ then
+  write_log ERROR "The CATS-rf output directory already exists and the overwrite option is turned off"
+  exit 1
+ elif [[ "${OVERWRITE_RES}" = "T" ]]
+ then
+  rm -r "${OUT_DIR}"
+ fi
+fi
+
+#Checking the argument for quality encoding
+if [[ "${QUALITY_ENC}" -ne 33 && "${QUALITY_ENC}" -ne 64 ]]
+then
+ write_log WARNING "Invalid option for phred quality encoding of FASTQ files, defaulting to phred33"
+ QUALITY_ENC=33
+fi
+
+#Checking if fragment length parameters are set in paired-end mode
+if [[ "${LIB_CONF}" = "pe" && ( -n "${MEAN_INS_SIZE}" || -n "${SD_INS_SIZE}" ) ]]
+then
+ write_log WARNING "Ignoring the fragment length arguments in paired-end mode"
+fi
+
+#Checking if library strandness is set in single-end mode
+if [[ "${LIB_CONF}" = "se" && ${STRANDNESS} != "u" ]]
+then
+ write_log WARNING "Ignoring the library strandness argument in single-end mode"
+fi
+
+#Testing numerical arguments
+test_numeric_arg "${SEED}" "SEED" 12345 "Supplied an incorrect value for the random seed for read mapping, transcript quantification, and read assignment, defaulting to 12345"
+test_numeric_arg "${READ_MAP_N}" "READ_MAP_N" 10 "Supplied an incorrect value for the maximum number of distinct mappings per read, defaulting to 10"
+test_numeric_arg "${POS_REL_COV_PROP}" "POS_REL_COV_PROP" 0.01 "Supplied an incorrect value for the proportion of transcript length for positional relative coverage distribution analysis, defaulting to 0.01"
+test_numeric_arg "${COV_MEAN_END_PROP}" "COV_MEAN_END_PROP" 0.02 "Supplied an incorrect value for the proportion of transcript length for transcript end definition when calculating mean transcript end coverage, defaulting to 0.02"
+test_numeric_arg "${LOCAL_COV_WINDOW_SIZE}" "LOCAL_COV_WINDOW_SIZE" 10 "Supplied an incorrect value for the rolling window size for local coverage calculation when defining low-coverage regions, defaulting to 10 bp"
+test_numeric_arg "${LOCAL_COV_THR}" "LOCAL_COV_THR" 3 "Supplied an incorrect value for the local coverage threshold for LCR characterization, defaulting to 3"
+test_numeric_arg "${COV_PEN_WEIGHT}" "COV_PEN_WEIGHT" 1.5 "Supplied an incorrect value for the coverage penalty weight, defaulting to 1.5"
+test_numeric_arg "${LCR_EX_PEN}" "LCR_EX_PEN" 0.5 "Supplied an incorrect value for the LCR extension penalty, defaulting to 0.5"
+test_numeric_arg "${BASE_ACC_THR}" "BASE_ACC_THR" 0.95 "Supplied an incorrect value for the minimum accuracy for a base to be considered accurate, defaulting to 0.95"
+test_numeric_arg "${POS_ACC_PROP}" "POS_ACC_PROP" 0.01 "Supplied an incorrect value for the proportion of transcript length for positional accuracy distribution analysis, defaulting to 0.01"
+test_numeric_arg "${LOCAL_ACC_WINDOW_SIZE}" "LOCAL_ACC_WINDOW_SIZE" 10 "Supplied an incorrect value for the rolling window size for local accuracy calculation when defining low-accuracy regions, defaulting to 10 bp"
+test_numeric_arg "${LOCAL_ACC_THR}" "LOCAL_ACC_THR" 0.98 "Supplied an incorrect value for the local accuracy threshold for LAR characterization, defaulting to 0.98"
+test_numeric_arg "${LAR_EX_PEN}" "LAR_EX_PEN" 0.1 "Supplied an incorrect value for the LAR extension penalty, defaulting to 0.1"
+test_numeric_arg "${PAIR_TABLE_SPLIT_N}" "PAIR_TABLE_SPLIT_N" 3 "Supplied an incorrect value for number of splits performed on read pair mapping table, defaulting to 3"
+test_numeric_arg "${INCOMP_BRIDGE_TR_END_DIST}" "INCOMP_BRIDGE_TR_END_DIST" 40 "Supplied an incorrect value for the maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation, defaulting to 40 bp"
+test_numeric_arg "${DIST_THR_FACT_LOWER}" "DIST_THR_FACT_LOWER" 8 "Supplied an incorrect value for the multiplicative factor for lower distance outlier threshold calculation, defaulting to 8"
+test_numeric_arg "${DIST_THR_FACT_HIGHER}" "DIST_THR_FACT_HIGHER" 10 "Supplied an incorrect value for the multiplicative factor for higher distance outlier threshold calculation, defaulting to 10"
+test_numeric_arg "${DIST_THR_CORR_FACT}" "DIST_THR_CORR_FACT" 5 "Supplied an incorrect value for the correction factor for distance outlier threshold calculation, defaulting to 5"
+test_numeric_arg "${FRAG_TR_BRIDGE_N}" "FRAG_TR_BRIDGE_N" 3 "Supplied an incorrect value for the minimum number of bridging events for transcripts to be considered fragmented, defaulting to 3"
+test_numeric_arg "${ALPHA_COMP_FACT}" "ALPHA_COMP_FACT" 7 "Supplied an incorrect value for the alpha compression factor for beta-like transformation applied to bridge index during integrity score component calculation, defaulting to 7"
+test_numeric_arg "${BETA_COMP_FACT}" "BETA_COMP_FACT" 0.5 "Supplied an incorrect value for the beta compression factor for beta-like transformation applied to bridge index during integrity score component calculation, defaulting to 0.5"
+test_numeric_arg "${THREAD_N}" "THREAD_N" 10 "Supplied an incorrect value for the number of CPU threads, defaulting to 10"
+test_numeric_arg "${SORT_MEM_PERC}" "SORT_MEM_PERC" 50 "Supplied an incorrect value for the percentage of available RAM used by GNU sort, defaulting to 50"
+
+#Allocating CPU threads
+if [[ "${THREAD_N}" -gt 2 ]]
+then
+ THREAD_ADJ_N=$((THREAD_N - 2))
+ THREAD_ADJ2_N=2
+ THREAD_ADJ3_N=$((THREAD_N / 2))
+else
+ THREAD_ADJ_N=1
+ THREAD_ADJ2_N=1
+ THREAD_ADJ3_N=1
+fi
+
+#Setting the optimal number of file splits
+if [[ "${THREAD_N}" -le 10 ]]
+then
+ SPLIT_N=10
+elif [[ "${THREAD_N}" -gt 10 && "${THREAD_N}" -lt 30 ]]
+then
+ SPLIT_N="${THREAD_N}"
+else
+ SPLIT_N=30
+fi
+
+#Creating output directory
+mkdir "${OUT_DIR}"
+check_exit_status "Creating output directory failed"
+
+#Creating symbolic links
+ln -s -r -t "${OUT_DIR}" "${TRANSCRIPTOME}"
+TRANSCRIPTOME="$(basename "${TRANSCRIPTOME}")"
+ln -s -r -t "${OUT_DIR}" "${READS1}"
+READS1="$(basename "${READS1}")"
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ ln -s -r -t "${OUT_DIR}" "${READS2}"
+ READS2="$(basename "${READS2}")"
+fi
+cd "${OUT_DIR}"
+
+#Writing the script call to file
+echo "${CALL}" > call.log
+
+#Cleaning up transcript headers and adjusting uppercase N bases
+sed -r 's/^(>\S+)\s.*/\1/' "${TRANSCRIPTOME}" | sed -e '/^[^>]/s/N/n/g' > "${TRANSCRIPTOME}_onew_h"
+rm "${TRANSCRIPTOME}"
+
+#Calculating general transcriptome assembly statistics
+write_log INFO "Calculating general transcriptome assembly statistics"
+awk '/^>/ { if (seq) print name "\t" length(seq); name = substr($0, 2); seq = ""; next } { seq = seq $0 } END { print name "\t" length(seq) }' "${TRANSCRIPTOME}_onew_h" > "${TRANSCRIPTOME}_lengths.tsv"
+CATS_general_assembly_stats.R "${THREAD_N}" "${TRANSCRIPTOME}_lengths.tsv" "${OUT_PREF}"
+check_exit_status "General transcriptome assembly statistics calculation failed"
+GC_CONTENT="$(awk '!/^>/ { gc_con += gsub(/[cCgG]/, ""); at_con += gsub(/[tTaA]/, ""); } END { printf "%.2f%%\n", (100 * gc_con) / (gc_con + at_con); }' "${TRANSCRIPTOME}_onew_h")"
+echo -e "GC content (%)\t${GC_CONTENT}" >> "${OUT_PREF}_general_statistics_table.tsv"
+
+#Processing the supplied reads
+write_log INFO "Processing the supplied reads"
+if [[ "${READS1}" = *.gz ]]
+then
+ READ_FILE_COMMAND="zcat"
+else
+ READ_FILE_COMMAND="cat"
+fi
+
+if [[ "$("${READ_FILE_COMMAND}" "${READS1}" | head -c 1)" = "@" ]]
+then
+ "${READ_FILE_COMMAND}" "${READS1}" | awk '{print (NR%4 == 1) ? "@1_" ++i : $0}' > "mod_${READS1}"
+ if [[ "${LIB_CONF}" = "pe" ]]
+ then
+  "${READ_FILE_COMMAND}" "${READS2}" | awk '{print (NR%4 == 1) ? "@2_" ++i : $0}' > "mod_${READS2}"
+  rm "${READS2}"
+ fi
+ EDIT_DIST_FACT=$(head -n 40000 "mod_${READS1}" | awk 'NR%4 == 2 {print length}' | awk '{ total += $1 } END { print 0.1 * total / NR}')
+elif [[ "$("${READ_FILE_COMMAND}" "${READS1}" | head -c 1)" = ">" ]]
+then
+ "${READ_FILE_COMMAND}" "${READS1}" | awk '{print (NR%2 == 1) ? ">1_" ++i : $0}' > "mod_${READS1}"
+ if [[ "${LIB_CONF}" = "pe" ]]
+ then
+  "${READ_FILE_COMMAND}" "${READS2}" | awk '{print (NR%2 == 1) ? ">2_" ++i : $0}'  > "mod_${READS2}"
+  rm "${READS2}"
+ fi
+ EDIT_DIST_FACT=$(head -n 20000 "mod_${READS1}" | awk 'NR%2 == 0 {print length}' | awk '{ total += $1 } END { print 0.1 * total / NR}')
+ FASTA_ARG="-f"
+else
+ write_log ERROR "Please provide read files in a suitable format (fastq or fasta)"
+ exit 1
+fi
+rm "${READS1}"
+
+#Building Bowtie2 index
+write_log INFO "Building Bowtie2 index"
+bowtie2-build --seed "${SEED}" --threads "${THREAD_N}" "${TRANSCRIPTOME}_onew_h" "${OUT_PREF}_index" &> bowtie2_build_log
+check_exit_status "Building Bowtie2 index failed. Check the bowtie2_build_log file"
+rm bowtie2_build_log
+
+#Read mapping with Bowtie2
+write_log INFO "Mapping reads to transcripts"
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ bowtie2 -k "${READ_MAP_N}" --mp 2,2 --no-unal ${FASTA_ARG} --phred"${QUALITY_ENC}" --seed "${SEED}" --threads "${THREAD_ADJ_N}" -x "${OUT_PREF}_index" -1 "mod_${READS1}" -2 "mod_${READS2}" 2> bowtie2_log | samtools view -b -h -@ "${THREAD_ADJ2_N}" -o "${OUT_PREF}.bam"
+else
+ bowtie2 -k "${READ_MAP_N}" --mp 2,2 --no-unal ${FASTA_ARG} --phred"${QUALITY_ENC}" --seed "${SEED}" --threads "${THREAD_ADJ_N}" -x "${OUT_PREF}_index" -U "mod_${READS1}" 2> bowtie2_log | samtools view -b -h -@ "${THREAD_ADJ2_N}" -o "${OUT_PREF}.bam"
+fi
+check_exit_status "Read mapping failed. Check the bowtie2_log file"
+rm "${OUT_PREF}_index"*
+
+#Extracting read mapping rate
+READ_MAPPING_RATE="$(awk '/overall/ {print $1}' bowtie2_log)"
+echo -e "% of reads mapping to the assembly\t${READ_MAPPING_RATE}" >> "${OUT_PREF}_general_statistics_table.tsv"
+rm bowtie2_log
+
+#Determining library strandness in auto-detection mode
+if [[ "${LIB_CONF}" = "pe" && "${STRANDNESS}" = "a" ]]
+then
+    STRANDNESS="$(samtools view "${OUT_PREF}.bam" | head -n 100000 | \
+    awk '{
+        flag = $2;
+        strand = (and(flag, 16) ? "-" : "+");
+        is_first = and(flag, 64);
+        is_second = and(flag, 128);
+        if (is_first) {
+            first[strand]++;
+        } else if (is_second) {
+            second[strand]++;
+        }
+    }
+    END {
+        total = first["+"] + first["-"] + second["+"] + second["-"];
+        rev_stranded = first["+"] + second["-"];
+        fwd_stranded = first["-"] + second["+"];
+        if (rev_stranded > 0.9 * total) {
+            print "rf";
+        } else if (fwd_stranded > 0.9 * total) {
+            print "fr";
+        } else {
+            print "u";
+        }
+    }')"
+ write_log INFO "Detected library strandness: ${STRANDNESS}"
+fi
+
+#Building kallisto index
+write_log INFO "Building kallisto index"
+kallisto index -t "${THREAD_N}" -i "${OUT_PREF}_kallisto_index" "${TRANSCRIPTOME}_onew_h" &> kallisto_index_log
+check_exit_status "Building kallisto index failed. Check the kallisto_index_log file"
+rm kallisto_index_log
+
+#Defining strandness for kallisto
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ if [[ "${STRANDNESS}" = "fr" ]]
+ then
+  STRANDNESS_KAL="--fr-stranded"
+ elif [[ "${STRANDNESS}" = "rf" ]]
+ then
+  STRANDNESS_KAL="--rf-stranded"
+ else
+  STRANDNESS_KAL=""
+ fi
+fi
+
+#Transcript quantification with kallisto
+write_log INFO "Quantifying transcripts"
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ kallisto quant ${STRANDNESS_KAL} --seed="${SEED}" -t "${THREAD_N}" -i "${OUT_PREF}_kallisto_index" -o . "mod_${READS1}" "mod_${READS2}" 2> kallisto_log
+ check_exit_status "Transcript quantification failed. Check the kallisto_log file"
+ rm "mod_${READS1}" "mod_${READS2}" "${OUT_PREF}_kallisto_index" run_info.json kallisto_log
+else
+ kallisto quant --single --seed="${SEED}" -l "${MEAN_INS_SIZE}" -s "${SD_INS_SIZE}" -t "${THREAD_N}" -i "${OUT_PREF}_kallisto_index" -o . "mod_${READS1}" 2> kallisto_log
+ check_exit_status "Transcript quantification failed. Check the kallisto_log file"
+ rm "mod_${READS1}" "${OUT_PREF}_kallisto_index" run_info.json kallisto_log
+fi
+
+cut -f 1,5 abundance.tsv > "${OUT_PREF}_abundance_tpm.tsv" && rm abundance.tsv
+
+#Processing the mapping output, preparing for read assignment
+write_log INFO "Processing the mapping output"
+samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | cut -f 1,3 > "${OUT_PREF}_read_tr_table"
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ cut -c 1 "${OUT_PREF}_read_tr_table" | paste "${OUT_PREF}_read_tr_table" - > "${OUT_PREF}_read_tr_table_pair_N" && rm "${OUT_PREF}_read_tr_table"
+ cut -f 1 "${OUT_PREF}_read_tr_table_pair_N" | cut -c 3- | paste "${OUT_PREF}_read_tr_table_pair_N" - > "${OUT_PREF}_read_tr_table_pair_N_frag_id" && rm "${OUT_PREF}_read_tr_table_pair_N"
+else
+ mv "${OUT_PREF}_read_tr_table" "${OUT_PREF}_read_tr_table_pair_N_frag_id"
+fi
+awk -F '\t' 'NR > 0 {$0 = $0 "\t" NR} 1' "${OUT_PREF}_read_tr_table_pair_N_frag_id" > "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N" && rm "${OUT_PREF}_read_tr_table_pair_N_frag_id"
+samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | cut -f 12- | awk '{for (i = 1; i <= NF; i++) {if ($i ~ /^NM/) {print $i}}}'| sed 's/.*://' | paste "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N" - > "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" && rm "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N"
+sort -n -k 4 -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+check_sorted_files "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" 4
+
+#Performing read assignment
+write_log INFO "Performing read assignment"
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ parallel --pipepart --block "${MEMORY_BLOCK}" -j "${THREAD_N}" -a "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" CATS_rf_read_assignment_pe.R "${EDIT_DIST_FACT}" "${SEED}" "${OUT_PREF}" > "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+else
+ parallel --pipepart --block "${MEMORY_BLOCK}" -j "${THREAD_N}" -a "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" CATS_rf_read_assignment_se.R "${EDIT_DIST_FACT}" "${SEED}" "${OUT_PREF}" > "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+fi
+check_exit_status "Read assignment failed"
+rm "${OUT_PREF}_abundance_tpm.tsv" "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+
+#Filtering multimapped reads based on read assignment
+write_log INFO "Filtering multimapped reads based on read assignemnt"
+sort -n -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+check_sorted_files "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" 1
+samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | awk 'NR == FNR {data[$1]; next} FNR in data' "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" -  | awk -F "\t" '!seen[$1, $3]++' > "${OUT_PREF}_sampled_mappings.sam" && rm "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+samtools view -H -@ "${THREAD_N}" "${OUT_PREF}.bam" > "${OUT_PREF}_bam_header"
+rm "${OUT_PREF}.bam"
+
+#Converting sampled read mappings to bed format - for paired-end analysis
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ write_log INFO "Preparing prerequisites for paired-end analysis"
+ cat "${OUT_PREF}_bam_header" "${OUT_PREF}_sampled_mappings.sam" | samtools view -b -h -@ "${THREAD_ADJ3_N}" - | samtools sort -@ "${THREAD_ADJ3_N}" -o "sorted_${OUT_PREF}_sampled_mappings.bam" 2> /dev/null
+ bamToBed -i "sorted_${OUT_PREF}_sampled_mappings.bam" | awk -v OFS='\t' '{print $4, $1, $2 + 1, $3, $6}' |  awk -v OFS='\t' '{sub(/\/.*/, "", $1)} 1' > "${OUT_PREF}_sampled_mappings.bed"
+ check_exit_status "Bedtools (bamToBed) failed"
+ rm "sorted_${OUT_PREF}_sampled_mappings.bam"
+fi
+
+#Splitting transcripts and read mappings
+write_log INFO "Preparing for per-base coverage and accuracy calculation"
+cut -f 1 "${TRANSCRIPTOME}_lengths.tsv" | shuf > "${TRANSCRIPTOME}_names.tsv"
+split --number=l/"${SPLIT_N}" -d "${TRANSCRIPTOME}_names.tsv" && rm "${TRANSCRIPTOME}_names.tsv"
+ls x[0-2][0-9] | parallel filter_by_id 3 {} "${OUT_PREF}_sampled_mappings.sam" "{}_${OUT_PREF}_sampled_mappings.sam"
+rm "${OUT_PREF}_sampled_mappings.sam"
+
+#Generating bam files from split read mappings
+for SAM_FILE in x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.sam"
+do
+ cat "${OUT_PREF}_bam_header" "${SAM_FILE}" | samtools view -b -h -@ "${THREAD_ADJ3_N}" - | samtools sort -@ "${THREAD_ADJ3_N}" -o "sorted_${SAM_FILE%.*}.bam" 2> /dev/null
+ rm "${SAM_FILE}"
+ samtools index -@ "${THREAD_N}" "sorted_${SAM_FILE%.*}.bam"
+done
+rm "${OUT_PREF}_bam_header"
+
+#Calculating per-base coverage and accuracy
+write_log INFO "Calculating per-base coverage and accuracy"
+samtools faidx "${TRANSCRIPTOME}_onew_h"
+ls sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.bam" | parallel "pysamstats -t variation -S nofilter -f \"${TRANSCRIPTOME}_onew_h\" {} | cut -f 1,2,4,6,12 > {/.}_pysam_out"
+check_exit_status "Calculating per-base coverage and accuracy with pysamstats failed"
+rm "${TRANSCRIPTOME}_onew_h" sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.bam" sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.bam.bai" "${TRANSCRIPTOME}_onew_h.fai"
+
+#Adding uncovered bases to pysamstats output
+write_log INFO "Preparing for coverage and accuracy analysis"
+ls sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out" | parallel -j "${SPLIT_N}" "cat {} | CATS_rf_add_uncovered_bases.R \"${TRANSCRIPTOME}_lengths.tsv\" > {}_with_uncov_bases"
+check_exit_status "Adding uncovered bases to pysamstats output failed"
+rm sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out"
+ls sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out_with_uncov_bases" | xargs cat > "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete"
+rm sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out_with_uncov_bases"
+
+#Adding uncovered transcripts to pysamstats output
+cut -f 1 "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete" | uniq | awk 'FNR == NR { a[$1]; next } !($1 in a)' - "${TRANSCRIPTOME}_lengths.tsv" > "${OUT_PREF}_uncovered_transcript_lengths"
+if [[ -s "${OUT_PREF}_uncovered_transcript_lengths" ]]
+then
+ CATS_rf_add_uncovered_transcripts.R "${THREAD_N}" "${OUT_PREF}_uncovered_transcript_lengths" "${OUT_PREF}"
+ check_exit_status "Adding uncovered transcripts to pysamstats output failed"
+ cat "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete" "${OUT_PREF}_uncov_trans" > "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
+ rm "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete" "${OUT_PREF}_uncov_trans"
+else
+ mv "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete" "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
+fi
+rm "${OUT_PREF}_uncovered_transcript_lengths"
+
+#Splitting the pysamstats table
+ls x[0-2][0-9] | parallel filter_by_id 1 {} "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr" "{}_sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
+rm x[0-2][0-9] "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
+
+#Analysing transcript coverage and accuracy
+write_log INFO "Running coverage and accuracy analysis"
+CATS_rf_cov_acc_analysis.R "${OUT_PREF}" "${THREAD_N}" "${COV_PROP_BREAKS}" "${TR_COV_MEAN_BREAKS}" "${BASE_COV_BREAKS}" "${LOCAL_COV_WINDOW_SIZE}" "${LOCAL_COV_THR}" "${LCR_PROP_BREAKS}" "${COV_PEN_WEIGHT}" "${LCR_EX_PEN}" "${POS_REL_COV_PROP}" "${COV_MEAN_END_PROP}" "${POS_ACC_PROP}" "${BASE_ACC_THR}" "${ACC_BASE_PROP_BREAKS}" "${BASE_ACC_BREAKS}" "${LOCAL_ACC_WINDOW_SIZE}" "${LOCAL_ACC_THR}" "${LAR_PROP_BREAKS}" "${LAR_EX_PEN}"
+check_exit_status "Coverage and accuracy analysis failed"
+rm x[0-2][0-9]"_sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
+
+#Preparing for paired-end analysis
+if [[ "${LIB_CONF}" = "pe" ]]
+then
+ write_log INFO "Preparing for paired-end analysis"
+ cut -c 1 "${OUT_PREF}_sampled_mappings.bed" | paste "${OUT_PREF}_sampled_mappings.bed"  - > "${OUT_PREF}_sampled_mappings_pair_N" && rm "${OUT_PREF}_sampled_mappings.bed"
+ cut -f 1 "${OUT_PREF}_sampled_mappings_pair_N" | cut -c 3- | paste "${OUT_PREF}_sampled_mappings_pair_N"  - | cut  -f 2,3,4,5,6,7 > "${OUT_PREF}_sampled_mappings_pair_N_frag_id" && rm "${OUT_PREF}_sampled_mappings_pair_N"
+ sort -n -k 6 -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "${OUT_PREF}_sampled_mappings_pair_N_frag_id" > "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
+ check_sorted_files "${OUT_PREF}_sampled_mappings_pair_N_frag_id" 6
+ split --number=l/"${PAIR_TABLE_SPLIT_N}" -d "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
+ rm "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
+
+#Performing paired-end analysis
+ write_log INFO "Performing paired-end analysis"
+ CATS_rf_paired_end_analysis.R "${THREAD_N}" "${TRANSCRIPTOME}_lengths.tsv" "${INCOMP_BRIDGE_TR_END_DIST}" "${STRANDNESS}" "${DIST_THR_CORR_FACT}" "${DIST_THR_FACT_LOWER}" "${DIST_THR_FACT_HIGHER}" "${OUT_PREF}" "${IMP_WITHIN_READ_PROP_BREAKS}" "${DIFF_TR_PAIR_READ_PROP_BREAKS}" "${ALPHA_COMP_FACT}" "${BETA_COMP_FACT}" "${FRAG_TR_BRIDGE_N}"
+ check_exit_status "Paired-end analysis failed"
+ rm "${TRANSCRIPTOME}_lengths.tsv" x[0-9]*
+
+#Generating transcriptome assembly socres
+ write_log INFO "Generating transcriptome assembly scores"
+ CATS_rf_generate_assembly_score.R "${THREAD_N}" "${OUT_PREF}_coverage_stats.tsv" "${OUT_PREF}"
+ check_exit_status "Generating transcriptome assembly scores failed"
+
+#Writing results to standard output
+ echo ""
+ echo "----- Transcriptome scores -----"
+ cat "${OUT_PREF}_assembly_score_summary.tsv"
+else
+ echo ""
+ echo "----- Coverage and accuracy analysis summary -----"
+ cat "${OUT_PREF}_coverage_and_accuracy_analysis_summary.tsv"
+fi
+
+#Exiting
+write_log INFO "Thank you for using CATS-rf! The transcriptome assembly quality assessment results can be found in ${OUT_DIR}"
+exit 0
