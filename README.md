@@ -24,7 +24,9 @@ CATS-rf consistently displays stronger performance than currently existing refer
 ## Installing from source
 
 ### Linux and Windows
-CATS-rf consists of Bash and R scripts distributed via this repository. For the best compatibility and performance, we recommend running CATS-rf on:
+CATS-rf consists of Bash and R scripts located in the `scripts` directory of this repository. After cloning the repository, all CATS-rf scripts must be included in the `PATH` environment variable. 
+
+For the best compatibility and performance, we recommend running CATS-rf on:
 - Any modern Linux distribution (e.g. Ubuntu, Debian, Fedora, etc.)
 - WSL (i.e. Ubuntu on Windows)
 
@@ -52,7 +54,6 @@ export PATH="/opt/homebrew/opt/grep/libexec/gnubin:$PATH"
 ```
 
 ### Dependencies
-All CATS-rf scripts must be made executable and included in the `PATH` environment variable.
 
 The following dependencies are required and must also be included in `PATH`:
 
@@ -74,6 +75,10 @@ The following dependencies are required and must also be included in `PATH`:
 ```bash
 conda install -c bioconda cats_rf
 ```
+
+# Test data
+
+CATS-rf installation can be tested using instructions and files stored in `test_data` directory.
 
 # Example usage 
 
