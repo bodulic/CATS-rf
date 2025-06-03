@@ -198,10 +198,6 @@ Extension penalty `E` adjusts accuracy penalties assigned to LARs. Higher values
 
 These options should only be supplied in paired-end mode.
 
-`-T`: Number of splits performed on read pair mapping table, default: 3
-
-The read pair mapping table is split before paired-end analysis to reduce RAM usage. Increase `T` when working with limited memory to further reduce RAM demands.
-
 `-d`: Maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation (in bp), default: 40 bp
 
 Reads mapping to transcript ends are considered evidence for transcript end incompleteness or fragmentation. Parameter `d` controls the relative size of transcript end regions when identifying such reads.
@@ -245,6 +241,10 @@ CATS-rf utilizes GNU sort in several steps of the pipeline. Higher values of `G`
 `-M`: Memory block size for GNU Parallel, default: 512M
 
 Parameter `M` controls the input block size used by GNU Parallel when splitting the mapping table for read assignment. If sufficient RAM is available, increasing `M` is recommended to minimize artifacts introduced by file splitting.
+
+`-T`: Number of splits performed on positional and read pair mapping tables, default: 3
+
+Positional and read pair mapping tables are split before analysis to reduce RAM usage. Increase `T` when working with limited memory to further reduce RAM demands.
 
 `-D`: Output directory name, default: TRANSCRIPTOME_CATS_rf_dir
 
