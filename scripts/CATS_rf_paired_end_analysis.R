@@ -53,7 +53,7 @@ imp_map_pair_diff_tr_dt <- list()
 integrity_stats_dt <- list()
 
 #Defining read mapping table import pattern
-files_in_directory <- grep("x[0-9]+$", list.files(path = "."), value = T)
+files_in_directory <- grep("^x[0-9][0-9]$", list.files(path = "."), value = T)
 
 #Looping over split files
 for (i in 1 : length(files_in_directory)) {

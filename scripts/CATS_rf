@@ -33,7 +33,6 @@ usage () {
  echo "-U: Per-transcript proportion of LAR bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1" >&2
  echo "-E: LAR extension penalty, default: 0.1" >&2
  echo "Paired-end analysis options:" >&2
- echo "-T: Number of splits performed on read pair mapping table, default: 3" >&2
  echo "-d: Maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation (in bp), default: 40 bp" >&2
  echo "-x: Multiplicative factor for lower distance outlier threshold calculation, default: 8" >&2
  echo "-X: Multiplicative factor for higher distance outlier threshold calculation, default: 10" >&2
@@ -47,8 +46,9 @@ usage () {
  echo "-t: Number of CPU threads, default: 10" >&2
  echo "-G: Percentage of available RAM used by GNU sort, default: 50" >&2
  echo "-M: Memory block size for GNU Parallel, default: 512M" >&2
+ echo "-T: Number of splits performed on positional and read pair mapping tables, default: 3" >&2
  echo "-D: Output directory name, default: TRANSCRIPTOME_CATS_rf_dir" >&2
- echo "-o: Output file prefix, default: TRANSCRIPTOME_CATS_rf" >&2
+ echo "-o: Output file prefix, default: TRANSCRIPTOME_¢CATS_rf" >&2
  echo "-O: Overwrite the results directory, default: off" >&2
  echo "-h: Show usage information" >&2
  exit 1
@@ -166,7 +166,6 @@ LOCAL_ACC_WINDOW_SIZE=10
 LOCAL_ACC_THR=0.98
 LAR_PROP_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1"
 LAR_EX_PEN=0.1
-PAIR_TABLE_SPLIT_N=3
 INCOMP_BRIDGE_TR_END_DIST=40
 DIST_THR_FACT_LOWER=8
 DIST_THR_FACT_HIGHER=10
@@ -179,13 +178,14 @@ BETA_COMP_FACT=0.5
 THREAD_N=10
 SORT_MEM_PERC=50
 MEMORY_BLOCK="512M"
+COV_ACC_PAIR_TABLE_SPLIT_N=3
 OVERWRITE_RES="F"
 
 #Saving the script call
 CALL="$(echo "${0} ${@}")"
 
 #Defining options
-while getopts ":C:S:Q:R:N:m:s:i:p:r:l:n:k:z:u:w:e:I:A:P:L:K:Z:U:E:T:d:x:X:c:y:f:F:a:b:t:G:M:D:o:Oh" OPT; do
+while getopts ":C:S:Q:R:N:m:s:i:p:r:l:n:k:z:u:w:e:I:A:P:L:K:Z:U:E:d:x:X:c:y:f:F:a:b:t:G:M:T:D:o:Oh" OPT; do
  case "${OPT}" in
   C) LIB_CONF="${OPTARG}"
      ;;
@@ -237,8 +237,6 @@ while getopts ":C:S:Q:R:N:m:s:i:p:r:l:n:k:z:u:w:e:I:A:P:L:K:Z:U:E:T:d:x:X:c:y:f:
      ;;
   E) LAR_EX_PEN="${OPTARG}"
      ;;
-  T) PAIR_TABLE_SPLIT_N="${OPTARG}"
-     ;;
   d) INCOMP_BRIDGE_TR_END_DIST="${OPTARG}"
      ;;
   x) DIST_THR_FACT_LOWER="${OPTARG}"
@@ -262,6 +260,8 @@ while getopts ":C:S:Q:R:N:m:s:i:p:r:l:n:k:z:u:w:e:I:A:P:L:K:Z:U:E:T:d:x:X:c:y:f:
   G) SORT_MEM_PERC="${OPTARG}"
      ;;
   M) MEMORY_BLOCK="${OPTARG}"
+     ;;
+  T) COV_ACC_PAIR_TABLE_SPLIT_N="${OPTARG}"
      ;;
   D) OUT_DIR="${OPTARG}"
      ;;
@@ -408,7 +408,6 @@ test_numeric_arg "${POS_ACC_PROP}" "POS_ACC_PROP" 0.01 "Supplied an incorrect va
 test_numeric_arg "${LOCAL_ACC_WINDOW_SIZE}" "LOCAL_ACC_WINDOW_SIZE" 10 "Supplied an incorrect value for the rolling window size for local accuracy calculation when defining low-accuracy regions, defaulting to 10 bp"
 test_numeric_arg "${LOCAL_ACC_THR}" "LOCAL_ACC_THR" 0.98 "Supplied an incorrect value for the local accuracy threshold for LAR characterization, defaulting to 0.98"
 test_numeric_arg "${LAR_EX_PEN}" "LAR_EX_PEN" 0.1 "Supplied an incorrect value for the LAR extension penalty, defaulting to 0.1"
-test_numeric_arg "${PAIR_TABLE_SPLIT_N}" "PAIR_TABLE_SPLIT_N" 3 "Supplied an incorrect value for number of splits performed on read pair mapping table, defaulting to 3"
 test_numeric_arg "${INCOMP_BRIDGE_TR_END_DIST}" "INCOMP_BRIDGE_TR_END_DIST" 40 "Supplied an incorrect value for the maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation, defaulting to 40 bp"
 test_numeric_arg "${DIST_THR_FACT_LOWER}" "DIST_THR_FACT_LOWER" 8 "Supplied an incorrect value for the multiplicative factor for lower distance outlier threshold calculation, defaulting to 8"
 test_numeric_arg "${DIST_THR_FACT_HIGHER}" "DIST_THR_FACT_HIGHER" 10 "Supplied an incorrect value for the multiplicative factor for higher distance outlier threshold calculation, defaulting to 10"
@@ -418,6 +417,14 @@ test_numeric_arg "${ALPHA_COMP_FACT}" "ALPHA_COMP_FACT" 7 "Supplied an incorrect
 test_numeric_arg "${BETA_COMP_FACT}" "BETA_COMP_FACT" 0.5 "Supplied an incorrect value for the beta compression factor for beta-like transformation applied to bridge index during integrity score component calculation, defaulting to 0.5"
 test_numeric_arg "${THREAD_N}" "THREAD_N" 10 "Supplied an incorrect value for the number of CPU threads, defaulting to 10"
 test_numeric_arg "${SORT_MEM_PERC}" "SORT_MEM_PERC" 50 "Supplied an incorrect value for the percentage of available RAM used by GNU sort, defaulting to 50"
+test_numeric_arg "${COV_ACC_PAIR_TABLE_SPLIT_N}" "COV_ACC_PAIR_TABLE_SPLIT_N" 3 "Supplied an incorrect value for the number of splits performed on positional and read pair mapping tables, defaulting to 3"
+
+#Checking the COV_ACC_PAIR_TABLE_SPLIT_N argument
+if [[ "${COV_ACC_PAIR_TABLE_SPLIT_N}" -gt 100 ]]
+then
+ write_log WARNING "Number of splits performed on positional and read pair mapping tables should not exceed 100. Defaulting to 100"
+ COV_ACC_PAIR_TABLE_SPLIT_N=100
+fi
 
 #Allocating CPU threads
 if [[ "${THREAD_N}" -gt 2 ]]
@@ -641,8 +648,8 @@ fi
 #Splitting transcripts and read mappings
 write_log INFO "Preparing for per-base coverage and accuracy calculation"
 cut -f 1 "${TRANSCRIPTOME}_lengths.tsv" | shuf > "${TRANSCRIPTOME}_names.tsv"
-split --number=l/"${SPLIT_N}" -d "${TRANSCRIPTOME}_names.tsv" && rm "${TRANSCRIPTOME}_names.tsv"
-ls x[0-2][0-9] | parallel filter_by_id 3 {} "${OUT_PREF}_sampled_mappings.sam" "{}_${OUT_PREF}_sampled_mappings.sam"
+split --number=l/"${SPLIT_N}" -d "${TRANSCRIPTOME}_names.tsv"
+ls x[0-2][0-9] | parallel filter_by_id 3 {} "${OUT_PREF}_sampled_mappings.sam" "{}_${OUT_PREF}_sampled_mappings.sam" && rm x[0-2][0-9]
 rm "${OUT_PREF}_sampled_mappings.sam"
 
 #Generating bam files from split read mappings
@@ -683,8 +690,10 @@ fi
 rm "${OUT_PREF}_uncovered_transcript_lengths"
 
 #Splitting the pysamstats table
-ls x[0-2][0-9] | parallel filter_by_id 1 {} "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr" "{}_sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
-rm x[0-2][0-9] "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
+split --number=l/"${COV_ACC_PAIR_TABLE_SPLIT_N}" -d "${TRANSCRIPTOME}_names.tsv"
+rm "${TRANSCRIPTOME}_names.tsv"
+ls x[0-9][0-9] | parallel filter_by_id 1 {} "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr" "{}_sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
+rm "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr" x[0-9][0-9]
 
 #Analysing transcript coverage and accuracy
 write_log INFO "Running coverage and accuracy analysis"
@@ -700,14 +709,14 @@ then
  cut -f 1 "${OUT_PREF}_sampled_mappings_pair_N" | cut -c 3- | paste "${OUT_PREF}_sampled_mappings_pair_N"  - | cut  -f 2,3,4,5,6,7 > "${OUT_PREF}_sampled_mappings_pair_N_frag_id" && rm "${OUT_PREF}_sampled_mappings_pair_N"
  sort -n -k 6 -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "${OUT_PREF}_sampled_mappings_pair_N_frag_id" > "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
  check_sorted_files "${OUT_PREF}_sampled_mappings_pair_N_frag_id" 6
- split --number=l/"${PAIR_TABLE_SPLIT_N}" -d "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
+ split --number=l/"${COV_ACC_PAIR_TABLE_SPLIT_N}" -d "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
  rm "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
 
 #Performing paired-end analysis
  write_log INFO "Performing paired-end analysis"
  CATS_rf_paired_end_analysis.R "${THREAD_N}" "${TRANSCRIPTOME}_lengths.tsv" "${INCOMP_BRIDGE_TR_END_DIST}" "${STRANDNESS}" "${DIST_THR_CORR_FACT}" "${DIST_THR_FACT_LOWER}" "${DIST_THR_FACT_HIGHER}" "${OUT_PREF}" "${IMP_WITHIN_READ_PROP_BREAKS}" "${DIFF_TR_PAIR_READ_PROP_BREAKS}" "${ALPHA_COMP_FACT}" "${BETA_COMP_FACT}" "${FRAG_TR_BRIDGE_N}"
  check_exit_status "Paired-end analysis failed"
- rm "${TRANSCRIPTOME}_lengths.tsv" x[0-9]*
+ rm "${TRANSCRIPTOME}_lengths.tsv" x[0-9][0-9]
 
 #Generating transcriptome assembly socres
  write_log INFO "Generating transcriptome assembly scores"

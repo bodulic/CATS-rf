@@ -50,7 +50,7 @@ lar_dt <- list()
 accuracy_stats_dt <- list()
 
 #Defining pysamstats output import pattern
-files_in_directory <- grep(paste("x[0-2][0-9]_sorted", OUT_PREF, "pysam_out_with_uncov_bases_and_uncov_tr", sep = "_"), list.files(path = "."), value = T)
+files_in_directory <- grep(paste("x[0-9][0-9]_sorted", OUT_PREF, "pysam_out_with_uncov_bases_and_uncov_tr", sep = "_"), list.files(path = "."), value = T)
 setDTthreads(THREAD_N)
 
 #Looping over split files
