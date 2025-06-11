@@ -13,7 +13,7 @@ BASE_COV_BREAKS <- unlist(strsplit(ext_args[5], ","))
 LOCAL_COV_WINDOW_SIZE <- as.numeric(ext_args[6])
 LOCAL_COV_THR <- as.numeric(ext_args[7])
 LCR_PROP_BREAKS <- unlist(strsplit(ext_args[8], ","))
-COV_PEN_WEIGHT <- as.numeric(ext_args[9])
+BASE_COV_WEIGHT <- as.numeric(ext_args[9])
 LCR_EX_PEN <- as.numeric(ext_args[10])
 POS_REL_COV_PROP <- as.numeric(ext_args[11])
 COV_MEAN_END_PROP <- as.numeric(ext_args[12])
@@ -127,7 +127,7 @@ for (i in 1 : length(files_in_directory)) {
   rm(lcr)
 
 #Calculating coverage score component (Sc)
-  per_base_cov_acc[lcr == T, "cov_fun" := fifelse(coverage == 0, 1, 1 / (COV_PEN_WEIGHT * coverage))]
+  per_base_cov_acc[lcr == T, "cov_fun" := fifelse(coverage == 0, 1, 1 / (BASE_COV_WEIGHT * coverage))]
   cov_score_comp_stats <- per_base_cov_acc[lcr == T, .(lcr_cov_pen = sum(cov_fun) + .N * LCR_EX_PEN), by = c("lcr_mark", "transcript")][, .(cov_pen = sum(lcr_cov_pen)), by = "transcript"]
   per_base_cov_acc[, c("lcr", "lcr_mark", "cov_fun") := NULL]
   cov_score_comp_stats <- merge(cov_score_comp_stats, tr_lengths, by = "transcript", all.y = T)

@@ -11,7 +11,7 @@ usage () {
  echo "-R: Random seed for read mapping, transcript quantification, and read assignment, default: 12345" >&2
  echo "-N: Maximum number of distinct mappings per read, default: 10" >&2
  echo "-m: Estimated mean of fragment length needed for transcript quantification (single-end mode only)" >&2
- echo "-s: Estimated st. dev. of fragment length needed for transcript quantification (single-end mode only)" >&2
+ echo "-s: Estimated standard deviation of fragment length needed for transcript quantification (single-end mode only)" >&2
  echo "Coverage analysis options:" >&2
  echo "-i: Per-base coverage distribution breakpoints (specified with x,y,z...), default: 0,5,10,20,40,60,80,100" >&2
  echo "-p: Per-transcript proportion of covered bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
@@ -21,7 +21,7 @@ usage () {
  echo "-k: Rolling window size for local coverage calculation (in bp) when defining low-coverage regions (LCR), default: 10 bp" >&2
  echo "-z: Local coverage threshold for LCR characterization, default: 3" >&2
  echo "-u: Per-transcript proportion of LCR bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
- echo "-w: Coverage penalty weight, default: 1.5" >&2
+ echo "-w: Base coverage weight, default: 1.5" >&2
  echo "-e: LCR extension penalty, default: 0.5" >&2
  echo "Accuracy analysis options:" >&2
  echo "-I: Per-base accuracy distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1" >&2
@@ -29,7 +29,6 @@ usage () {
  echo "-P: Per-transcript proportion of accurate bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1"  >&2
  echo "-L: Proportion of transcript length for positional accuracy distribution analysis, default: 0.01" >&2
  echo "-K: Rolling window size for local accuracy calculation (in bp) when defining low-accuracy regions (LAR), default: 10 bp" >&2
- echo "-Z: Local accuracy threshold for LAR characterization, default: 0.98" >&2
  echo "-U: Per-transcript proportion of LAR bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1" >&2
  echo "-E: LAR extension penalty, default: 0.1" >&2
  echo "Paired-end analysis options:" >&2
@@ -39,9 +38,9 @@ usage () {
  echo "-c: Correction factor for distance outlier threshold calculation, default: 5" >&2
  echo "-y: Per-transcript proportion of improperly paired reads within a transcript distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
  echo "-f: Minimum number of bridging events for transcripts to be considered fragmented, default: 3" >&2
- echo "-F: Per-transcript proportion of reads whose pairs map to other transcripts distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
- echo "-a: Alpha compression factor for beta-like transformation applied to bridge index during integrity score component calculation, default: 7" >&2
- echo "-b: Beta compression factor for beta-like transformation applied to bridge index during integrity score component calculation, default: 0.5" >&2
+ echo "-F: Per-transcript proportion of reads with pair mapped to another transcript distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
+ echo "-a: Alpha compression factor for sigmoid transformation applied to bridge index during integrity score component calculation, default: 7" >&2
+ echo "-b: Beta compression factor for sigmoid transformation applied to bridge index during integrity score component calculation, default: 0.5" >&2
  echo "General options:" >&2
  echo "-t: Number of CPU threads, default: 10" >&2
  echo "-G: Percentage of available RAM used by GNU sort, default: 50" >&2
@@ -156,7 +155,7 @@ COV_MEAN_END_PROP=0.02
 LOCAL_COV_WINDOW_SIZE=10
 LOCAL_COV_THR=3
 LCR_PROP_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
-COV_PEN_WEIGHT=1.5
+BASE_COV_WEIGHT=1.5
 LCR_EX_PEN=0.5
 BASE_ACC_BREAKS="0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1"
 BASE_ACC_THR=0.95
@@ -217,7 +216,7 @@ while getopts ":C:S:Q:R:N:m:s:i:p:r:l:n:k:z:u:w:e:I:A:P:L:K:Z:U:E:d:x:X:c:y:f:F:
      ;;
   u) LCR_PROP_BREAKS="${OPTARG}"
      ;;
-  w) COV_PEN_WEIGHT="${OPTARG}"
+  w) BASE_COV_WEIGHT="${OPTARG}"
      ;;
   e) LCR_EX_PEN="${OPTARG}"
      ;;
@@ -313,7 +312,7 @@ fi
 if [[ "${LIB_CONF}" = "se" ]]
 then
  test_numeric_arg "${MEAN_INS_SIZE}" "MEAN_INS_SIZE" "" "Supplied an incorrect value for the estimated mean of fragment length needed for transcript quantification"
- test_numeric_arg "${SD_INS_SIZE}" "SD_INS_SIZE" "" "Supplied an incorrect value for the estimated st. dev. of fragment length needed for transcript quantification"
+ test_numeric_arg "${SD_INS_SIZE}" "SD_INS_SIZE" "" "Supplied an incorrect value for the estimated standard deviation of fragment length needed for transcript quantification"
  if [[ -z "${MEAN_INS_SIZE}" || -z "${SD_INS_SIZE}" ]]
  then
   write_log ERROR "Please supply valid arguments for the estimated mean and st. dev. of fragment length in single-end mode"
@@ -401,7 +400,7 @@ test_numeric_arg "${POS_REL_COV_PROP}" "POS_REL_COV_PROP" 0.01 "Supplied an inco
 test_numeric_arg "${COV_MEAN_END_PROP}" "COV_MEAN_END_PROP" 0.02 "Supplied an incorrect value for the proportion of transcript length for transcript end definition when calculating mean transcript end coverage, defaulting to 0.02"
 test_numeric_arg "${LOCAL_COV_WINDOW_SIZE}" "LOCAL_COV_WINDOW_SIZE" 10 "Supplied an incorrect value for the rolling window size for local coverage calculation when defining low-coverage regions, defaulting to 10 bp"
 test_numeric_arg "${LOCAL_COV_THR}" "LOCAL_COV_THR" 3 "Supplied an incorrect value for the local coverage threshold for LCR characterization, defaulting to 3"
-test_numeric_arg "${COV_PEN_WEIGHT}" "COV_PEN_WEIGHT" 1.5 "Supplied an incorrect value for the coverage penalty weight, defaulting to 1.5"
+test_numeric_arg "${BASE_COV_WEIGHT}" "BASE_COV_WEIGHT" 1.5 "Supplied an incorrect value for the base coverage weight, defaulting to 1.5"
 test_numeric_arg "${LCR_EX_PEN}" "LCR_EX_PEN" 0.5 "Supplied an incorrect value for the LCR extension penalty, defaulting to 0.5"
 test_numeric_arg "${BASE_ACC_THR}" "BASE_ACC_THR" 0.95 "Supplied an incorrect value for the minimum accuracy for a base to be considered accurate, defaulting to 0.95"
 test_numeric_arg "${POS_ACC_PROP}" "POS_ACC_PROP" 0.01 "Supplied an incorrect value for the proportion of transcript length for positional accuracy distribution analysis, defaulting to 0.01"
@@ -413,8 +412,8 @@ test_numeric_arg "${DIST_THR_FACT_LOWER}" "DIST_THR_FACT_LOWER" 8 "Supplied an i
 test_numeric_arg "${DIST_THR_FACT_HIGHER}" "DIST_THR_FACT_HIGHER" 10 "Supplied an incorrect value for the multiplicative factor for higher distance outlier threshold calculation, defaulting to 10"
 test_numeric_arg "${DIST_THR_CORR_FACT}" "DIST_THR_CORR_FACT" 5 "Supplied an incorrect value for the correction factor for distance outlier threshold calculation, defaulting to 5"
 test_numeric_arg "${FRAG_TR_BRIDGE_N}" "FRAG_TR_BRIDGE_N" 3 "Supplied an incorrect value for the minimum number of bridging events for transcripts to be considered fragmented, defaulting to 3"
-test_numeric_arg "${ALPHA_COMP_FACT}" "ALPHA_COMP_FACT" 7 "Supplied an incorrect value for the alpha compression factor for beta-like transformation applied to bridge index during integrity score component calculation, defaulting to 7"
-test_numeric_arg "${BETA_COMP_FACT}" "BETA_COMP_FACT" 0.5 "Supplied an incorrect value for the beta compression factor for beta-like transformation applied to bridge index during integrity score component calculation, defaulting to 0.5"
+test_numeric_arg "${ALPHA_COMP_FACT}" "ALPHA_COMP_FACT" 7 "Supplied an incorrect value for the alpha compression factor for sigmoid transformation applied to bridge index during integrity score component calculation, defaulting to 7"
+test_numeric_arg "${BETA_COMP_FACT}" "BETA_COMP_FACT" 0.5 "Supplied an incorrect value for the beta compression factor for sigmoid transformation applied to bridge index during integrity score component calculation, defaulting to 0.5"
 test_numeric_arg "${THREAD_N}" "THREAD_N" 10 "Supplied an incorrect value for the number of CPU threads, defaulting to 10"
 test_numeric_arg "${SORT_MEM_PERC}" "SORT_MEM_PERC" 50 "Supplied an incorrect value for the percentage of available RAM used by GNU sort, defaulting to 50"
 test_numeric_arg "${COV_ACC_PAIR_TABLE_SPLIT_N}" "COV_ACC_PAIR_TABLE_SPLIT_N" 3 "Supplied an incorrect value for the number of splits performed on positional and read pair mapping tables, defaulting to 3"
@@ -649,8 +648,8 @@ fi
 write_log INFO "Preparing for per-base coverage and accuracy calculation"
 cut -f 1 "${TRANSCRIPTOME}_lengths.tsv" | shuf > "${TRANSCRIPTOME}_names.tsv"
 split --number=l/"${SPLIT_N}" -d "${TRANSCRIPTOME}_names.tsv"
-ls x[0-2][0-9] | parallel filter_by_id 3 {} "${OUT_PREF}_sampled_mappings.sam" "{}_${OUT_PREF}_sampled_mappings.sam" && rm x[0-2][0-9]
-rm "${OUT_PREF}_sampled_mappings.sam"
+ls x[0-2][0-9] | parallel filter_by_id 3 {} "${OUT_PREF}_sampled_mappings.sam" "{}_${OUT_PREF}_sampled_mappings.sam"
+rm "${OUT_PREF}_sampled_mappings.sam" x[0-2][0-9]
 
 #Generating bam files from split read mappings
 for SAM_FILE in x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.sam"
@@ -697,7 +696,7 @@ rm "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr" x[0-9][0-9]
 
 #Analysing transcript coverage and accuracy
 write_log INFO "Running coverage and accuracy analysis"
-CATS_rf_cov_acc_analysis.R "${OUT_PREF}" "${THREAD_N}" "${COV_PROP_BREAKS}" "${TR_COV_MEAN_BREAKS}" "${BASE_COV_BREAKS}" "${LOCAL_COV_WINDOW_SIZE}" "${LOCAL_COV_THR}" "${LCR_PROP_BREAKS}" "${COV_PEN_WEIGHT}" "${LCR_EX_PEN}" "${POS_REL_COV_PROP}" "${COV_MEAN_END_PROP}" "${POS_ACC_PROP}" "${BASE_ACC_THR}" "${ACC_BASE_PROP_BREAKS}" "${BASE_ACC_BREAKS}" "${LOCAL_ACC_WINDOW_SIZE}" "${LOCAL_ACC_THR}" "${LAR_PROP_BREAKS}" "${LAR_EX_PEN}"
+CATS_rf_cov_acc_analysis.R "${OUT_PREF}" "${THREAD_N}" "${COV_PROP_BREAKS}" "${TR_COV_MEAN_BREAKS}" "${BASE_COV_BREAKS}" "${LOCAL_COV_WINDOW_SIZE}" "${LOCAL_COV_THR}" "${LCR_PROP_BREAKS}" "${BASE_COV_WEIGHT}" "${LCR_EX_PEN}" "${POS_REL_COV_PROP}" "${COV_MEAN_END_PROP}" "${POS_ACC_PROP}" "${BASE_ACC_THR}" "${ACC_BASE_PROP_BREAKS}" "${BASE_ACC_BREAKS}" "${LOCAL_ACC_WINDOW_SIZE}" "${LOCAL_ACC_THR}" "${LAR_PROP_BREAKS}" "${LAR_EX_PEN}"
 check_exit_status "Coverage and accuracy analysis failed"
 rm x[0-2][0-9]"_sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
 

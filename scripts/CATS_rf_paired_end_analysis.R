@@ -45,7 +45,7 @@ setnames(tr_lengths, c("transcript", "tr_len"))
 #Defining empty variables
 mapped_read_N_vec <- c()
 end_mapped_read_N_vec <- c()
-imp_map_pair_strand_ori_dt <- list()
+imp_map_pair_ori_dt <- list()
 pair_dist_q3 <- NA
 imp_map_pair_dist_dt <- list()
 local_fidelity_stats_dt <- list()
@@ -129,27 +129,27 @@ for (i in 1 : length(files_in_directory)) {
   imp_map_pair_diff_tr <- read_mappings[transcript.x != transcript.y]
   read_mappings <- read_mappings[transcript.x == transcript.y]
     
-#Identifying pairs which map to an inappropriate strand or in an unexpected orientation
+#Identifying pairs which map in an unexpected orientation
   if (read_mappings[, .N] != 0) {
    if (STRANDNESS == "fr") {
-    read_mappings[, "strand_ori" := fifelse(tr_strand.x == "+" & tr_strand.y == "-" & tr_start.x <= tr_start.y, "correct", "incorrect")]
+    read_mappings[, "orientation" := fifelse(tr_strand.x == "+" & tr_strand.y == "-" & tr_start.x <= tr_start.y, "correct", "incorrect")]
    } else if (STRANDNESS == "rf") {
-    read_mappings[, "strand_ori" := fifelse(tr_strand.x == "-" & tr_strand.y == "+" & tr_start.y <= tr_start.x, "correct", "incorrect")]
+    read_mappings[, "orientation" := fifelse(tr_strand.x == "-" & tr_strand.y == "+" & tr_start.y <= tr_start.x, "correct", "incorrect")]
    } else {
-    read_mappings[, "strand_ori" := fifelse(tr_strand.x != tr_strand.y, "correct", "incorrect")]
+    read_mappings[, "orientation" := fifelse(tr_strand.x != tr_strand.y, "correct", "incorrect")]
    }
-   imp_map_pair_strand_ori <- read_mappings[strand_ori == "incorrect"]
-   imp_map_pair_strand_ori[, "strand_ori" := NULL]
-   read_mappings <- read_mappings[strand_ori == "correct"]
-   read_mappings[, "strand_ori" := NULL]
+   imp_map_pair_ori <- read_mappings[orientation == "incorrect"]
+   imp_map_pair_ori[, "orientation" := NULL]
+   read_mappings <- read_mappings[orientation == "correct"]
+   read_mappings[, "orientation" := NULL]
       
-   if (imp_map_pair_strand_ori[, .N] != 0) {
-    local_fidelity_stats <- merge(local_fidelity_stats, setnames(imp_map_pair_strand_ori[, 2 * .N, by = "transcript.x"], c("transcript", "imp_strand_ori_read_N")), by = "transcript", all.x = T)
-    imp_map_pair_strand_ori_dt[[i]] <- imp_map_pair_strand_ori
+   if (imp_map_pair_ori[, .N] != 0) {
+    local_fidelity_stats <- merge(local_fidelity_stats, setnames(imp_map_pair_ori[, 2 * .N, by = "transcript.x"], c("transcript", "imp_ori_read_N")), by = "transcript", all.x = T)
+    imp_map_pair_ori_dt[[i]] <- imp_map_pair_ori
    } else {
-    local_fidelity_stats[, "imp_strand_ori_read_N" := 0]
+    local_fidelity_stats[, "imp_ori_read_N" := 0]
    }
-   rm(imp_map_pair_strand_ori)
+   rm(imp_map_pair_ori)
       
 #Calculating distance between pairs
    if (read_mappings[, .N] != 0) {
@@ -188,7 +188,7 @@ for (i in 1 : length(files_in_directory)) {
    }
   } else {
    rm(read_mappings)
-   local_fidelity_stats[, ':=' ("imp_strand_ori_read_N" = 0, "imp_dist_read_N" = 0, "distance_pen_sum" = 0)]
+   local_fidelity_stats[, ':=' ("imp_ori_read_N" = 0, "imp_dist_read_N" = 0, "distance_pen_sum" = 0)]
   }
     
 #Adding the number of reads mapped to transcript ends per transcript
@@ -199,11 +199,11 @@ for (i in 1 : length(files_in_directory)) {
   local_fidelity_stats_dt[[i]] <- local_fidelity_stats
   rm(local_fidelity_stats)
     
-#Saving the number of mapped reads and the number of reads mapped to transcript ends per transcript
+#Merging the number of mapped reads and the number of reads mapped to transcript ends per transcript
   integrity_stats <- merge(tr_mapped_read_N, tr_end_read_N, by = "transcript", all.x = T)
   rm(tr_mapped_read_N, tr_end_read_N)
     
-#Calculating the per-transcript number of reads with pairs mapped to another transcript
+#Calculating the per-transcript number of reads with pair mapped to another transcript
   if (imp_map_pair_diff_tr[, .N] != 0) {  
    imp_map_pair_diff_tr_N <- rbindlist(list(imp_map_pair_diff_tr[, .(transcript.x)], setnames(imp_map_pair_diff_tr[, .(transcript.y)], "transcript.x")))[, .(diff_tr_pair_read_N = .N), by = "transcript.x"]
    integrity_stats <- merge(integrity_stats, setnames(imp_map_pair_diff_tr_N, c("transcript", "diff_tr_pair_read_N")), by ="transcript", all.x = T)
@@ -239,7 +239,7 @@ for (i in 1 : length(files_in_directory)) {
   rm(integrity_stats)
     
  } else {
-  local_fidelity_stats[, ':=' ("imp_strand_ori_read_N" = 0, "imp_dist_read_N" = 0, "distance_pen_sum" = 0)]
+  local_fidelity_stats[, ':=' ("imp_ori_read_N" = 0, "imp_dist_read_N" = 0, "distance_pen_sum" = 0)]
   local_fidelity_stats <- merge(local_fidelity_stats, tr_end_read_N, by = "transcript", all.x = T)
   local_fidelity_stats[is.na(local_fidelity_stats)] <- 0
   local_fidelity_stats_dt[[i]] <- local_fidelity_stats
@@ -261,15 +261,15 @@ rm(tr_lengths)
 mapped_read_N_sum <- sum(mapped_read_N_vec)
 end_mapped_read_N_sum <- sum(end_mapped_read_N_vec)
 
-#Writing pairs which map to an inappropriate strand or in an unexpected orientation to file
-imp_map_pair_strand_ori_dt <- rbindlist(imp_map_pair_strand_ori_dt)
-if (imp_map_pair_strand_ori_dt[, .N] != 0) {
- setorder(imp_map_pair_strand_ori_dt, transcript.x)
- write.table(imp_map_pair_strand_ori_dt, file = paste(OUT_PREF, "read_pairs_mapping_to_inconsistent_strand_or_orientation.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
+#Writing pairs mapped in an unexpected orientation to file
+imp_map_pair_ori_dt <- rbindlist(imp_map_pair_ori_dt)
+if (imp_map_pair_ori_dt[, .N] != 0) {
+ setorder(imp_map_pair_ori_dt, transcript.x)
+ write.table(imp_map_pair_ori_dt, file = paste(OUT_PREF, "read_pairs_mapping_in_unexpected_orientation.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
 }
-rm(imp_map_pair_strand_ori_dt)
+rm(imp_map_pair_ori_dt)
 
-#Writing pairs mapping too far apart to file
+#Writing pairs mapped too far apart to file
 imp_map_pair_dist_dt <- rbindlist(imp_map_pair_dist_dt)
 if (imp_map_pair_dist_dt[, .N] != 0) {
  setorder(imp_map_pair_dist_dt, transcript.x)
@@ -277,7 +277,7 @@ if (imp_map_pair_dist_dt[, .N] != 0) {
 }
 rm(imp_map_pair_dist_dt)
 
-#Writing pairs mapping to different transcripts to file
+#Writing pairs mapped to different transcripts to file
 imp_map_pair_diff_tr_dt <- rbindlist(imp_map_pair_diff_tr_dt)
 if (imp_map_pair_diff_tr_dt[, .N] != 0) {
  setorder(imp_map_pair_diff_tr_dt, transcript.x)
@@ -296,46 +296,46 @@ uncov_tr_vec <- tr_vec[tr_vec %in% local_fidelity_stats_dt[, transcript] == F]
 tr_N <- length(tr_vec)
 rm(tr_vec)
 
-#Calculating the proportion of reads with unmapped pairs per transcript
+#Calculating the proportion of reads with pair not mapped to the assembly per transcript
 local_fidelity_stats_dt[, "unmap_pair_read_prop" := unmap_pair_read_N / read_N]
 
-#Calculating the per-transcript proportion of reads with unmapped pairs on transcript ends
+#Calculating the per-transcript proportion of reads with pair not mapped to the assembly on transcript ends
 local_fidelity_stats_dt[end_mapped_read_N > 0, "unmap_pair_end_read_prop" := unmap_pair_end_read_N / end_mapped_read_N]
 local_fidelity_stats_dt[, "end_mapped_read_N" := NULL]
 
-#Calculating the proportion of reads with pairs which map to an inappropriate strand or in an unexpected orientation per transcript
-local_fidelity_stats_dt[, "imp_strand_ori_read_prop" := imp_strand_ori_read_N / read_N]
+#Calculating the proportion of reads with pair mapped in an unexpected orientation per transcript
+local_fidelity_stats_dt[, "imp_ori_read_prop" := imp_ori_read_N / read_N]
 
-#Normalizing the total distance penalty per transcript
-local_fidelity_stats_dt[, "norm_distance_pen" := distance_pen_sum / read_N]
+#Calculating the transcript distance penalty
+local_fidelity_stats_dt[, "distance_pen_tr" := distance_pen_sum / read_N]
 local_fidelity_stats_dt[, "distance_pen_sum" := NULL]
 
 #Calculating the number and proportion of improperly paired reads within a transcript
-local_fidelity_stats_dt[, "imp_within_read_N" := unmap_pair_read_N + imp_strand_ori_read_N + imp_dist_read_N]
+local_fidelity_stats_dt[, "imp_within_read_N" := unmap_pair_read_N + imp_ori_read_N + imp_dist_read_N]
 local_fidelity_stats_dt[, "imp_within_read_prop" := imp_within_read_N / read_N]
 local_fidelity_stats_dt[, "read_N" := NULL]
 get_category_intervals(local_fidelity_stats_dt, "imp_within_read_prop", IMP_WITHIN_READ_PROP_BREAKS, "imp_within_read_prop_cat")
 
 #Calculating local fidelity score component (Sl)
-local_fidelity_stats_dt[, "loc_fid_score_comp" := 1 - sqrt(unmap_pair_read_prop + imp_strand_ori_read_prop + norm_distance_pen)]
+local_fidelity_stats_dt[, "loc_fid_score_comp" := 1 - sqrt(unmap_pair_read_prop + imp_ori_read_prop + distance_pen_tr)]
 
 #Reordering the local fidelity statistics table
-setcolorder(local_fidelity_stats_dt, c("transcript", "unmap_pair_read_N", "unmap_pair_read_prop", "unmap_pair_end_read_N", "unmap_pair_end_read_prop", "imp_strand_ori_read_N", "imp_strand_ori_read_prop", "imp_dist_read_N", "norm_distance_pen", "imp_within_read_N", "imp_within_read_prop", "imp_within_read_prop_cat", "loc_fid_score_comp"))
+setcolorder(local_fidelity_stats_dt, c("transcript", "unmap_pair_read_N", "unmap_pair_read_prop", "unmap_pair_end_read_N", "unmap_pair_end_read_prop", "imp_ori_read_N", "imp_ori_read_prop", "imp_dist_read_N", "distance_pen_tr", "imp_within_read_N", "imp_within_read_prop", "imp_within_read_prop_cat", "loc_fid_score_comp"))
 
-#Calculating the number of reads with unmapped pairs
+#Calculating the number of reads with pair not mapped to the assembly
 unmap_pair_read_N_sum <- local_fidelity_stats_dt[, sum(unmap_pair_read_N)]
 
-#Calculating the number of reads with unmapped pairs on transcript ends
+#Calculating the number of reads with pair not mapped to the assembly on transcript ends
 unmap_pair_end_read_N_sum <- local_fidelity_stats_dt[, sum(unmap_pair_end_read_N)]
 
-#Calculating the number of reads whose pairs map to an inappropriate strand or in an unexpected orientation
-imp_strand_ori_read_N_sum <- local_fidelity_stats_dt[, sum(imp_strand_ori_read_N)] 
+#Calculating the number of reads with pair mapped in an unexpected orientation
+imp_ori_read_N_sum <- local_fidelity_stats_dt[, sum(imp_ori_read_N)] 
 
-#Calculating the number of reads whose pairs map too far apart
+#Calculating the number of reads with pair mapped too far apart
 imp_dist_read_N_sum <- local_fidelity_stats_dt[, sum(imp_dist_read_N)]
 
 #Calculating the number of improperly paired reads within a transcript
-imp_within_read_N_sum <- unmap_pair_read_N_sum + imp_strand_ori_read_N_sum + imp_dist_read_N_sum
+imp_within_read_N_sum <- unmap_pair_read_N_sum + imp_ori_read_N_sum + imp_dist_read_N_sum
 
 #Calculating summaries of local fidelity metrics
 unmap_pair_end_read_prop_summary <- summary(local_fidelity_stats_dt[, unmap_pair_end_read_prop])
@@ -344,11 +344,11 @@ loc_fid_score_comp_summary <- summary(local_fidelity_stats_dt[, loc_fid_score_co
 
 #Adding uncovered transcripts
 if(length(uncov_tr_vec) > 0) {
- local_fidelity_stats_dt <- rbindlist(list(local_fidelity_stats_dt, data.table(transcript = uncov_tr_vec, unmap_pair_read_N = 0, unmap_pair_read_prop = NA, unmap_pair_end_read_N = 0, unmap_pair_end_read_prop = NA, imp_strand_ori_read_N = 0, imp_strand_ori_read_prop = NA, imp_dist_read_N = 0, norm_distance_pen = NA, imp_within_read_N = 0, imp_within_read_prop = NA, imp_within_read_prop_cat = NA, loc_fid_score_comp = NA)))
+ local_fidelity_stats_dt <- rbindlist(list(local_fidelity_stats_dt, data.table(transcript = uncov_tr_vec, unmap_pair_read_N = 0, unmap_pair_read_prop = NA, unmap_pair_end_read_N = 0, unmap_pair_end_read_prop = NA, imp_ori_read_N = 0, imp_ori_read_prop = NA, imp_dist_read_N = 0, distance_pen_tr = NA, imp_within_read_N = 0, imp_within_read_prop = NA, imp_within_read_prop_cat = NA, loc_fid_score_comp = NA)))
 }
 
 #Writing local fidelity statistics to file
-setnames(local_fidelity_stats_dt, c("transcript", "unmapped_pair_read_N", "unmapped_pair_read_prop", "unmapped_pair_tr_end_read_N" ,"unmapped_pair_tr_end_read_prop", "improp_pair_strand_orientation_read_N", "improp_pair_strand_orientation_read_prop", "improp_pair_distance_read_N", "norm_distance_penalty", "improp_pair_within_tr_read_N", "improp_pair_within_tr_read_prop", "improp_pair_within_tr_read_prop_category", "local_fidelity_score_component"))
+setnames(local_fidelity_stats_dt, c("transcript", "unmapped_pair_read_N", "unmapped_pair_read_prop", "unmapped_pair_tr_end_read_N" ,"unmapped_pair_tr_end_read_prop", "improp_pair_orientation_read_N", "improp_pair_orientation_read_prop", "improp_pair_distance_read_N", "transcript_distance_penalty", "improp_pair_within_tr_read_N", "improp_pair_within_tr_read_prop", "improp_pair_within_tr_read_prop_category", "local_fidelity_score_component"))
 setorder(local_fidelity_stats_dt, transcript)
 write.table(local_fidelity_stats_dt, file = paste(OUT_PREF, "local_fidelity_stats.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
 rm(local_fidelity_stats_dt)
@@ -357,11 +357,11 @@ rm(local_fidelity_stats_dt)
 integrity_stats_dt <- rbindlist(integrity_stats_dt)
 integrity_stats_dt <- integrity_stats_dt[, lapply(.SD, sum), by = "transcript", .SDcols = -"transcript"]
 
-#Calculating the proportion of reads whose pairs map to other transcripts per transcript
+#Calculating the proportion of reads with pair mapped to another transcript per transcript
 integrity_stats_dt[, "diff_tr_pair_read_prop" := diff_tr_pair_read_N / read_N]
 get_category_intervals(integrity_stats_dt, "diff_tr_pair_read_prop", DIFF_TR_PAIR_READ_PROP_BREAKS, "diff_tr_pair_read_prop_cat")
 
-#Calculating the proportion of reads representing bridging events on transcript ends
+#Calculating the per-transcript proportion of reads representing bridging events on transcript ends
 integrity_stats_dt[end_mapped_read_N > 0, "bridge_prop" := bridge_N / end_mapped_read_N]
 integrity_stats_dt[, "end_mapped_read_N" := NULL]
 
@@ -373,13 +373,13 @@ integrity_stats_dt[, c("read_N", "bridge_pen_sum", "bridge_idx") := NULL]
 #Reordering the integrity statistics table
 setcolorder(integrity_stats_dt, c("transcript", "diff_tr_pair_read_N", "diff_tr_pair_read_prop", "diff_tr_pair_read_prop_cat", "bridge_N", "bridge_prop", "integ_score_comp"))
 
-#Calculating the number of reads whose pairs map to other transcripts
+#Calculating the number of reads with pair mapped to another transcript
 diff_tr_pair_read_N_sum <- integrity_stats_dt[, sum(diff_tr_pair_read_N)]
 
 #Calculating the number of fragmented transcripts
 frag_tr_N <- integrity_stats_dt[bridge_N >= FRAG_TR_BRIDGE_N, .N]
 
-#Calculating the number of bridging events
+#Calculating the number of reads representing bridging events
 bridge_N_sum <- integrity_stats_dt[, sum(bridge_N)]
 
 #Calculating summaries of integrity metrics
@@ -399,4 +399,4 @@ write.table(integrity_stats_dt, file = paste(OUT_PREF, "integrity_stats.tsv", se
 rm(integrity_stats_dt)
 
 #Writing paired-end analysis summary to file
-write.table(data.table(parameter = c("N, % reads with unmapped pairs", "N, % reads with unmapped pairs on transcript ends", "% of reads with unmapped pairs on transcript ends per transcript (mean, IQR)", "N, % reads with pairs mapping to an inappropriate strand or in an unexpected orientation", "N, % reads mapping too far from their pair", "N, % improperly paired reads within a transcript", "% of improperly paired reads within a transcript per transcript (mean, IQR)", "Local fidelity score component (mean, IQR)", "N, % reads with pairs mapping to different transcripts", "% of reads with pairs mapping to different transcripts per transcript (mean, IQR)", "N, % fragmented transcripts", "N, % reads representing bridging events on transcript ends", "% of reads representing bridging events on transcript ends per transcript (mean, IQR)", "Integrity score component (mean, IQR)"), value = c(paste0(unmap_pair_read_N_sum, ", ", round(100 * unmap_pair_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(unmap_pair_end_read_N_sum, ", ", round(100 * unmap_pair_end_read_N_sum / end_mapped_read_N_sum, 2), "%"), paste0(round(100 * unmap_pair_end_read_prop_summary[4], 2), "%, ", round(100 * unmap_pair_end_read_prop_summary[2], 2), "%-", round(100 * unmap_pair_end_read_prop_summary[5], 2), "%"), paste0(imp_strand_ori_read_N_sum, ", ", round(100 * imp_strand_ori_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(imp_dist_read_N_sum, ", ", round(100 * imp_dist_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(imp_within_read_N_sum, ", ", round(100 * imp_within_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(round(100 * imp_within_read_prop_summary[4], 2), "%, ", round(100 * imp_within_read_prop_summary[2], 2), "%-", round(100 * imp_within_read_prop_summary[5], 2), "%"), paste0(round(loc_fid_score_comp_summary[4], 3), ", ", round(loc_fid_score_comp_summary[2], 3), "-", round(loc_fid_score_comp_summary[5], 3)), paste0(diff_tr_pair_read_N_sum, ", ", round(100 * diff_tr_pair_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(round(100 * diff_tr_pair_read_prop_summary[4], 2), "%, ", round(100 * diff_tr_pair_read_prop_summary[2], 2), "%-", round(100 * diff_tr_pair_read_prop_summary[5], 2), "%"), paste0(frag_tr_N, ", ", round(100 * frag_tr_N / tr_N, 2), "%"), paste0(bridge_N_sum, ", ", round(100 * bridge_N_sum / end_mapped_read_N_sum, 2), "%"), paste0(round(100 * bridge_prop_summary[4], 2), "%, ", round(100 * bridge_prop_summary[2], 2), "%-", round(100 * bridge_prop_summary[5], 2), "%"), paste0(round(integ_score_comp_summary[4], 3), ", ", round(integ_score_comp_summary[2], 3), "-", round(integ_score_comp_summary[5], 3)))), file = paste(OUT_PREF, "paired_end_analysis_summmary.tsv", sep = "_"), sep = "\t", row.names = F, col.names = F, quote = F)
+write.table(data.table(parameter = c("N, % reads with pair not mapped to the assembly", "N, % reads with pair not mapped to the assembly on transcript ends", "% of reads with pair not mapped to the assembly on transcript ends per transcript (mean, IQR)", "N, % reads with pair mapped in an unexpected orientation", "N, % reads with pair mapped too far apart", "N, % improperly paired reads within a transcript", "% of improperly paired reads within a transcript per transcript (mean, IQR)", "Local fidelity score component (mean, IQR)", "N, % reads with pair mapped to another transcript", "% of reads with pair mapped to another transcript per transcript (mean, IQR)", "N, % fragmented transcripts", "N, % reads representing bridging events on transcript ends", "% of reads representing bridging events on transcript ends per transcript (mean, IQR)", "Integrity score component (mean, IQR)"), value = c(paste0(unmap_pair_read_N_sum, ", ", round(100 * unmap_pair_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(unmap_pair_end_read_N_sum, ", ", round(100 * unmap_pair_end_read_N_sum / end_mapped_read_N_sum, 2), "%"), paste0(round(100 * unmap_pair_end_read_prop_summary[4], 2), "%, ", round(100 * unmap_pair_end_read_prop_summary[2], 2), "%-", round(100 * unmap_pair_end_read_prop_summary[5], 2), "%"), paste0(imp_ori_read_N_sum, ", ", round(100 * imp_ori_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(imp_dist_read_N_sum, ", ", round(100 * imp_dist_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(imp_within_read_N_sum, ", ", round(100 * imp_within_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(round(100 * imp_within_read_prop_summary[4], 2), "%, ", round(100 * imp_within_read_prop_summary[2], 2), "%-", round(100 * imp_within_read_prop_summary[5], 2), "%"), paste0(round(loc_fid_score_comp_summary[4], 3), ", ", round(loc_fid_score_comp_summary[2], 3), "-", round(loc_fid_score_comp_summary[5], 3)), paste0(diff_tr_pair_read_N_sum, ", ", round(100 * diff_tr_pair_read_N_sum / mapped_read_N_sum, 2), "%"), paste0(round(100 * diff_tr_pair_read_prop_summary[4], 2), "%, ", round(100 * diff_tr_pair_read_prop_summary[2], 2), "%-", round(100 * diff_tr_pair_read_prop_summary[5], 2), "%"), paste0(frag_tr_N, ", ", round(100 * frag_tr_N / tr_N, 2), "%"), paste0(bridge_N_sum, ", ", round(100 * bridge_N_sum / end_mapped_read_N_sum, 2), "%"), paste0(round(100 * bridge_prop_summary[4], 2), "%, ", round(100 * bridge_prop_summary[2], 2), "%-", round(100 * bridge_prop_summary[5], 2), "%"), paste0(round(integ_score_comp_summary[4], 3), ", ", round(integ_score_comp_summary[2], 3), "-", round(integ_score_comp_summary[5], 3)))), file = paste(OUT_PREF, "paired_end_analysis_summmary.tsv", sep = "_"), sep = "\t", row.names = F, col.names = F, quote = F)
