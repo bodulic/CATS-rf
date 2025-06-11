@@ -13,15 +13,16 @@ CATS-rf is the reference-free module of the CATS (Comprehensive Assessment of Tr
 | Local&nbsp;fidelity&nbsp;component&nbsp;(<i>S<sub>l</sub></i>) | Inconsistent pair mapping within transcripts | Structural errors (e.g. deletions, translocations, inversions...) |
 | Integrity&nbsp;component&nbsp;(<i>S<sub>i</sub></i>)           | Pairs mapping to different transcripts       | Transcript fragmentation                                          |
 
-Transcript quality scores S<sub><i>t</i></sub> are calculated as products of the described score components, equally weighting detected assembly errors. Assembly score <i>S</i> is computed as the mean of individual transcript scores.
+Transcript quality score S<sub><i>t</i></sub> is calculated as the product of the described score components, equally weighting detected assembly errors. Assembly score <i>S</i> is computed as the mean of individual transcript scores.
 
 In addition to transcript scores, CATS-rf provides a comprehensive set of assembly metrics, including transcript length and composition statistics, read mapping rates, positional coverage and accuracy profiles, and pair mapping consistency metrics.
 
-CATS-rf consistently displays stronger performance than currently existing reference-free transcriptome assembly evaluation tools. Details and benchmarks can be found in the CATS [preprint](test)
+CATS-rf consistently displays stronger performance than currently existing reference-free transcriptome assembly evaluation tools. For detailed benchmarks and methodology, please refer to the CATS [preprint](test)
+
 
 # Installation 
 
-## Installing from source
+## Installing CATS-rf from source
 
 ### Linux and Windows
 CATS-rf consists of Bash and R scripts located in the `scripts` directory of this repository. After cloning the repository, all CATS-rf scripts must be included in the `PATH` environment variable. 
@@ -31,31 +32,38 @@ For the best compatibility and performance, we recommend running CATS-rf on:
 - WSL (i.e. Ubuntu on Windows)
 
 ### MacOS
-If you’re using MacOS, Bash (version >= 4.0.) and GNU versions of core utilities are required. In this case, `PATH` variable should be adjusted so that CATS-rf uses the GNU versions of core utilities:
+If you’re using MacOS, Bash (version >= 4.0) and GNU versions of core utilities are required. In this case, `PATH` variable should be adjusted so that CATS-rf uses GNU versions of core utilities:
 
-- Install **Bash ≥ 4.0** via [Homebrew](https://formulae.brew.sh/formula/bash):
+- Install Bash ≥ 4.0 via [Homebrew](https://formulae.brew.sh/formula/bash):
+
 ```bash
 brew install bash
 ```
+
 - Install GNU core utilities:
+
 ```bash
 brew install coreutils findutils gnu-sed gawk grep
 ```
+
 - Add GNU tools to your `PATH` (adjust path depending on your architecture):
+
 ```bash
 export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
 export PATH="/opt/homebrew/opt/findutils/libexec/gnubin:$PATH"
 export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 export PATH="/opt/homebrew/opt/grep/libexec/gnubin:$PATH"
 ```
+
 - Run the script using the installed Bash version (adjust path depending on your architecture):
+  
 ```bash
 /opt/homebrew/bin/bash CATS_rf
 ```
 
-### Dependencies
+## Dependencies
 
-The following dependencies are required and must also be included in `PATH`:
+The following dependencies are required:
 
 | **Dependency**      | **Tested Version** | **Homepage**                                   | **Conda Installation**                    |
 |---------------------|--------------------|------------------------------------------------|-------------------------------------------|
@@ -68,9 +76,11 @@ The following dependencies are required and must also be included in `PATH`:
 | bamToBed (bedtools) | 2.31.1             | https://github.com/arq5x/bedtools2             | `conda install -c bioconda bedtools`      |
 | pysamstats          | 1.1.2              | https://github.com/alimanfoo/pysamstats        | `conda install -c bioconda pysamstats`    |
 
-## Installing via conda
+R, Bowtie2, Samtools, kallisto, GNU Parallel, bedtools, and pysamstats executables must be included in `PATH`. R package `data.table` can be installed directly in R with `install.packages("data.table")` or via conda.
 
-**CATS-rf** and its dependencies are available via [Bioconda](https://bioconda.github.io/):
+## Installing CATS-rf via conda
+
+CATS-rf and its dependencies can be directly installed via [Bioconda](https://bioconda.github.io/):
 
 ```bash
 conda install -c bioconda cats_rf
@@ -95,7 +105,7 @@ CATS_rf [OPTIONS] TRANSCRIPTOME READS1 READS2
 Example single-end mode usage:
 
 ```bash
-CATS_rf -C se -m 150 -s 100 [OTHER_OPTIONS] TRANSCRIPTOME READS1
+CATS_rf -C se -m MEAN_INS_SIZE -s SD_INS_SIZE [OTHER_OPTIONS] TRANSCRIPTOME READS1
 ```
 
 Single-end mode requires three parameters to be specified: `C` for library configuration, `m` for mean fragment size, and `s` for standard deviation of fragment size. Note that single-end runs will output only general assembly statistics, read mapping metrics, and positional coverage/accuracy analysis.
@@ -110,7 +120,7 @@ CATS-rf offers a comprehensive list of options which allow users to control the 
 
 `-S`: Library strandness, fr = forward-reverse, rf = reverse-forward, u = unstranded, a = automatic detection, default: u
 
-CATS-rf can leverage strandness information when quantifying transcripts and calculating the local fidelity score component. When the automatic detection option is enabled, strandness is estimated using the first 100 000 read mappings.
+CATS-rf can leverage strandness information when quantifying transcripts and calculating the local fidelity score component. When the automatic detection option is enabled, strandness is estimated using the first 100000 read mappings.
 While CATS-rf is primarily developed for Illumina reads, the analysis can be run on reads generated by other technologies. In such scenario, `S` should be accordingly adjusted.
 
 `-Q`: Phred quality encoding of FASTQ files, 33 = phred33, 64 = phred64, default: 33
@@ -127,7 +137,7 @@ Parameter `N` should be increased for complex transcriptome assemblies that cont
 
 `-m:`: Estimated mean of fragment length needed for transcript quantification (single-end mode only)
 
-`-s`: Estimated st. dev. of fragment length needed for transcript quantification (single-end mode only)
+`-s`: Estimated standard deviation of fragment length needed for transcript quantification (single-end mode only)
 
 Fragment length distribution parameters `m` and `s` are required in single-end mode for transcript quantification by kallisto.
 
@@ -153,7 +163,7 @@ Transcripts are split into percentiles of size `l` for positional relative cover
 
 Parameter `n` controls the relative size of transcript end regions when calculating mean transcript end coverage.
 
-`-k`: Rolling window size for local coverage calculation (in bp) when defining low-coverage regions (LCR), default: 10 bp
+`-k`: Rolling window size for local coverage calculation (in bp) when defining low-coverage regions (LCR), default: 10
 
 `-z`: Local coverage threshold for LCR characterization, default: 3
 
@@ -163,7 +173,7 @@ LCRs are defined as rolling windows of size `k` with mean coverage lower than or
 
 Per-transcript proportion of LCR bases is split into intervals defined by `u` (e.g. [0-0.2>, [0.2-0.4>...). This category variable is used for plotting by the CATS_rf_compare script.
 
-`-w`: Coverage penalty weight, default: 1.5
+`-w`: Base coverage weight, default: 1.5
 
 `-e`: LCR extension penalty, default: 0.5
 
@@ -185,7 +195,7 @@ Per-transcript proportion of accurate bases (bases with accuracy higher or equal
 
 Transcripts are split into percentiles of size `L` for positional accuracy distribution analysis.
 
-`-K`: Rolling window size for local accuracy calculation (in bp) when defining low-accuracy regions (LAR), default: 10 bp
+`-K`: Rolling window size for local accuracy calculation (in bp) when defining low-accuracy regions (LAR), default: 10
 
 `-Z`: Local accuracy threshold for LAR characterization, default: 0.98
 
@@ -197,13 +207,13 @@ Per-transcript proportion of LAR bases is split into intervals defined by `U` (e
 
 `-E`: LAR extension penalty, default: 0.1
 
-Extension penalty `E` adjusts accuracy penalties assigned to LARs. Higher values of `E` increases the relative impact of LAR length on accuracy penalty.
+Extension penalty `E` adjusts accuracy penalties assigned to LARs. Higher values of `E` increase the relative impact of LAR length on accuracy penalty.
 
 ## Paired-end analysis options
 
 These options should only be supplied in paired-end mode.
 
-`-d`: Maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation (in bp), default: 40 bp
+`-d`: Maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation (in bp), default: 40
 
 Reads mapping to transcript ends are considered evidence for transcript end incompleteness or fragmentation. Parameter `d` controls the relative size of transcript end regions when identifying such reads.
 
@@ -213,25 +223,25 @@ Reads mapping to transcript ends are considered evidence for transcript end inco
 
 `-c`: Correction factor for distance outlier threshold calculation, default: 5
 
-Parameters `x`, `X`, and `c` adjust distance penalty calculation. Read pairs are classified as mapping too far apart if their distance exceeds the lower distance threshold, defined as D<sub>1</sub> = Q<sub>3</sub>(d) + x × (IQR(d) + c). These reads are assigned a distance penalty P<sub>d</sub> = d / D<sub>2</sub>, where D<sub>2</sub> = Q<sub>3</sub>(d) + X × (IQR(d) + c), with the penalty capped at 1. Parameter `x` adjusts the classification of read pairs mapping too far apart, while  `X` controls distance penalty scailing. Parameter `c` ensures penalty stability in libraries with a high proportion of overlapping read pairs.
+Parameters `x`, `X`, and `c` adjust distance penalty calculation. Read pairs are classified as mapping too far apart if their distance exceeds the lower distance threshold, defined as D<sub>1</sub> = Q<sub>3</sub>(d) + x × (IQR(d) + c). These reads are assigned a distance penalty P<sub>d</sub> = d / D<sub>2</sub>, where D<sub>2</sub> = Q<sub>3</sub>(d) + X × (IQR(d) + c), with the penalty capped at 1. Parameter `x` adjusts the classification of read pairs mapping too far apart, while  `X` controls distance penalty scailing. Parameter `c` ensures penalty robustness in libraries with a high proportion of overlapping read pairs.
 
 `-y`: Per-transcript proportion of improperly paired reads within a transcript distribution breakpoints (specified with x,y,z...), default: "0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
 
-Improperly paired reads include reads with pairs not mapped to the assembly, reads with pairs mapping to an inappropriate strand or in an unexpected orientation and read pairs mapping too far apart. Per-transcript proportion of improperly paired reads within a transcript is split into intervals defined by `y` (e.g. [0-0.2>, [0.2-0.4>...). This category variable is used for plotting by the CATS_rf_compare script.
+Improperly paired reads include reads with pair not mapped to the assembly, reads with pair mapped in an unexpected orientation, and reads with pair mapped too far apart. Per-transcript proportion of improperly paired reads within a transcript is split into intervals defined by `y` (e.g. [0-0.2>, [0.2-0.4>...). This category variable is used for plotting by the CATS_rf_compare script.
 
 `-f`: Minimum number of bridging events for transcripts to be considered fragmented, default: 3
 
 A transcript is considered fragmented if more than `f` reads representing bridging events map to transcript end regions.
 
-`-F`: Per-transcript proportion of reads whose pairs map to other transcripts distribution breakpoints (specified with x,y,z...), default: "0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
+`-F`: Per-transcript proportion of reads with pair mapped to another transcript distribution breakpoints (specified with x,y,z...), default: "0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
 
-Per-transcript proportion of reads whose pairs map to other transcripts is split into intervals defined by `F` (e.g. [0-0.2>, [0.2-0.4>...). This category variable is used for plotting by the CATS_rf_compare script.
+Per-transcript proportion of reads with pair mapped to another transcript is split into intervals defined by `F` (e.g. [0-0.2>, [0.2-0.4>...). This category variable is used for plotting by the CATS_rf_compare script.
 
-`-a`: Alpha compression factor for the beta-like transformation applied to bridge index during integrity score component calculation, default: 7
+`-a`: Alpha compression factor for sigmoid transformation applied to bridge index during integrity score component calculation, default: 7
 
-`-b`: Beta compression factor for the beta-like transformation applied to bridge index during integrity score component calculation, default: 0.5
+`-b`: Beta compression factor for sigmoid transformation applied to bridge index during integrity score component calculation, default: 0.5
 
-Bridge index measures the proportion of reads whose pair maps to a different transcript and considers the mapping distance of each read from the end of its respective transcript. This definition gives more weight to bridging events near transcript ends. Integrity score component is calculated using a beta-like transformation of bridge index. Compression factors `a` and `b` control the shape of the transformation: higher `a` increases sensitivity to fragmentation, while higher `b` reduces the likelihood of false-positive fragmentation penalties in transcripts with minimal bridging evidence.
+Bridge index measures the proportion of reads with pair mapped to a different transcript and considers the mapping distance of such reads from the end of their respective transcript. This definition gives more weight to bridging events near transcript ends. Integrity score component is calculated using a sigmoid transformation of bridge index. Compression factors `a` and `b` control the shape of the transformation: higher `a` increases sensitivity to fragmentation, while higher `b` reduces the likelihood of false-positive fragmentation penalties in transcripts with minimal bridging evidence.
 
 ## General options
 
@@ -245,7 +255,7 @@ CATS-rf utilizes GNU sort in several steps of the pipeline. Higher values of `G`
 
 `-M`: Memory block size for GNU Parallel, default: 512M
 
-Parameter `M` controls the input block size used by GNU Parallel when splitting the mapping table for read assignment. If sufficient RAM is available, increasing `M` is recommended to minimize artifacts introduced by file splitting.
+Parameter `M` controls the block size used by GNU Parallel when splitting the mapping table for read assignment. If sufficient RAM is available, increasing `M` is recommended to minimize artifacts introduced by file splitting.
 
 `-T`: Number of splits performed on positional and read pair mapping tables, default: 3
 
@@ -259,9 +269,9 @@ Positional and read pair mapping tables are split before analysis to reduce RAM 
 
 `-h`: Show usage information
 
-Usage is printed when using the `h` option or calling CATS-rf without arguments.
-
 # Output explanation
+
+## Summary table
 
 Summary files represent the main output of CATS-rf. In paired-end mode, four summary files are produced:
 
@@ -295,10 +305,10 @@ CATS-rf also produces several .tsv files containing detailed per-transcript metr
 | `transcript_end_coverage_mean`| Mean transcript end coverage                         |
 | `lcr_base_N`                  | Number of bases in low-coverage regions              |
 | `lcr_base_prop`               | Proportion of bases in low-coverage regions          |
-| `lcr_base_prop_cat`           | Proportion of bases in low-coverage regions category |
+| `lcr_base_prop_category`      | Proportion of bases in low-coverage regions category |
 | `coverage_score_component`    | Coverage score component                             |
 
-`per_base_coverage_distribution.tsv` contains distribution of per-base coverage in the assembly.
+`per_base_coverage_distribution.tsv` contains distribution of assembly-level per-base coverage.
 
 `relative_coverage_median_by_transcript_position.tsv` contains median values of mean relative coverage per transcript position percentile.
 
@@ -319,7 +329,7 @@ CATS-rf also produces several .tsv files containing detailed per-transcript metr
 | `lar_base_prop_category`   | Proportion of bases in low-accuracy regions category |
 | `accuracy_score_component` | Accuracy score component                             |
 
-`per_base_accuracy_distribution.tsv` contains distribution of per-base accuracy in the assembly.
+`per_base_accuracy_distribution.tsv` contains distribution of assembly-level per-base accuracy.
 
 `accuracy_median_by_transcript_position.tsv` contains median values of mean accuracy per transcript position percentile.
 
@@ -329,23 +339,23 @@ CATS-rf also produces several .tsv files containing detailed per-transcript metr
 
 `local_fidelity_stats.tsv` contains local fidelity analysis results for each transcript:
 
-| **Column**                                 | **Description**                                                                                |
-|--------------------------------------------|------------------------------------------------------------------------------------------------|
-| `transcript`                               | Transcript name                                                                                |
-| `unmapped_pair_read_N`                     | Number of reads with pairs not mapped to the assembly                                          |
-| `unmapped_pair_read_prop`                  | Proportion of reads with pairs not mapped to the assembly                                      |
-| `unmapped_pair_tr_end_read_N`              | Number of reads with pairs not mapped to the assembly on transcript ends                       |
-| `unmapped_pair_tr_end_read_prop`           | Proportion of reads with pairs not mapped to the assembly on transcript ends                   |
-| `improp_pair_strand_orientation_read_N`    | Number of reads whose pairs map to an inappropriate strand or in an unexpected orientation     |
-| `improp_pair_strand_orientation_read_prop` | Proportion of reads whose pairs map to an inappropriate strand or in an unexpected orientation |
-| `improp_pair_distance_read_N`              | Number of reads whose pairs map too far apart                                                  |
-| `norm_distance_penalty`                    | Normalized transcript distance penalty                                                         |
-| `improp_pair_within_tr_read_N`             | Number of improperly paired reads within a transcript                                          |
-| `improp_pair_within_tr_read_prop`          | Proportion of improperly paired reads within a transcript                                      |
-| `improp_pair_within_tr_read_prop_category` | Proportion of improperly paired reads within a transcript category                             |
-| `local_fidelity_score_component`           | Local fidelity score component                                                                 |
+| **Column**                                 | **Description**                                                              |
+|--------------------------------------------|------------------------------------------------------------------------------|
+| `transcript`                               | Transcript name                                                              |
+| `unmapped_pair_read_N`                     | Number of reads with pair not mapped to the assembly                         |
+| `unmapped_pair_read_prop`                  | Proportion of reads with pair not mapped to the assembly                     |
+| `unmapped_pair_tr_end_read_N`              | Number of reads with pair not mapped to the assembly on transcript ends      |
+| `unmapped_pair_tr_end_read_prop`           | Proportion of reads with pair not mapped to the assembly on transcript ends  |
+| `improp_pair_orientation_read_N`           | Number of reads with pair mapped in an unexpected orientation                |
+| `improp_pair_orientation_read_prop`        | Proportion of reads with pair mapped in an unexpected orientation            |
+| `improp_pair_distance_read_N`              | Number of reads with pair mapped too far apart                               |
+| `transcript_distance_penalty`              | Transcript distance penalty                                                  |
+| `improp_pair_within_tr_read_N`             | Number of improperly paired reads within a transcript                        |
+| `improp_pair_within_tr_read_prop`          | Proportion of improperly paired reads within a transcript                    |
+| `improp_pair_within_tr_read_prop_category` | Proportion of improperly paired reads within a transcript category           |
+| `local_fidelity_score_component`           | Local fidelity score component                                               |
 
-`read_pairs_mapping_to_inconsistent_strand_or_orientation.tsv` contains coordinates of read pairs mapping to an inappropriate strand or in an unexpected orientation.
+`read_pairs_mapping_in_unexpected_orientation.tsv` contains coordinates of read pairs mapping in an unexpected orientation.
 
 `read_pairs_mapping_too_far_apart.tsv` contains coordinates of read pairs mapping too far apart.
 
