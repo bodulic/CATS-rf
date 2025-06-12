@@ -147,6 +147,8 @@ Fragment length distribution parameters `m` and `s` are required in single-end m
 
 Per-base coverage is split into intervals defined by `i` (e.g. [0-5>, [5-10>...). This category variable is used for plotting by the CATS_rf_compare script.
 
+All category variable breaks (options `i`, `p`, `r`, `u`, `I`, `P`, `U`, `y`, and `F`) should be given as strings separated with commas and enclosed in quotes (e.g. "0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1").
+
 `-p`: Per-transcript proportion of covered bases distribution breakpoints (specified with x,y,z...), default: "0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1"
 
 Per-transcript proportion of covered bases is split into intervals defined by `p` (e.g. [0-0.2>, [0.2-0.4>...). This category variable is used for plotting by the CATS_rf_compare script.
@@ -377,7 +379,8 @@ CATS-rf also produces several .tsv files containing detailed per-transcript metr
 
 # Citation
 
-CATS is an academic software distributed under the MIT license. if you use CATS, please cite the CATS preprint:
+CATS is an academic software distributed under the MIT license. Copyright © 2025 Kristian Bodulić
+if you use CATS, please cite the CATS preprint:
 
 (add reference)
 
