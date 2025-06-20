@@ -1,3 +1,9 @@
-This folder represents the testing data for CATS-rf. The folder contains paired-end unstranded reads simulated from S. cerevisae reference mRNA and ncRNA data obtained from Ensembl (https://ftp.ensembl.org/pub/release-114/fasta/saccharomyces_cerevisiae/). Reads were simulated using the Polyester R package (version 1.32.0, baseline coverage for each transcript 1, mismatch rate 0.005, read length 100 bp, files 1.fasta.gz and 2.fasta.gz). Reads were assembled using rnaSPAdes (version 3.15.4) with default parameters, with the resulting assembly saved to rnaspades.fa file 
+This folder represents the testing data for CATS-rf. The folder contains paired-end unstranded reads simulated from S. cerevisae reference mRNA and ncRNA data obtained from Ensembl (https://ftp.ensembl.org/pub/release-114/fasta/saccharomyces_cerevisiae/). Reads were simulated using the Polyester R package (version 1.32.0, baseline coverage for each transcript 1, mismatch rate 0.005, read length 100 bp, files 1.fasta.gz and 2.fasta.gz). Reads were assembled using rnaSPAdes (version 3.15.4, file rnaspades.fa) and Trinity (version 2.15.1, file trinity.fa) with default parameters. 
 
-Test CATS-rf with: CATS_rf rnaspades.fa 1.fasta.gz 2.fasta.gz
+Test CATS-rf scripts with the following commands:
+
+CATS_rf rnaspades.fa 1.fasta.gz 2.fasta.gz
+
+CATS_rf trinity.fa 1.fasta.gz 2.fasta.gz
+
+CATS_rf_compare rnaspades.fa_CATS_rf_dir trinity.fa_CATS_rf_dir 
