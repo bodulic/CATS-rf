@@ -24,7 +24,7 @@ for (i in c("accuracy_stats.tsv", "local_fidelity_stats.tsv", "integrity_stats.t
  tr_scores <- merge(tr_scores, fread(import_filename, header = T, select = selected_cols), by = "transcript")
 }
 
-#Calculating transcript scores
+#Calculating transcript scores (St)
 tr_scores[, "transcript_score" := coverage_score_component * accuracy_score_component * local_fidelity_score_component * integrity_score_component]
 tr_scores[is.na(transcript_score), "transcript_score" := 0]
 
@@ -34,7 +34,7 @@ accuracy_score_component_summary <- summary(tr_scores[, accuracy_score_component
 local_fidelity_score_component_summary <- summary(tr_scores[, local_fidelity_score_component])
 integrity_score_component_summary <- summary(tr_scores[, integrity_score_component])
 
-#Calculating transcriptome assembly score
+#Calculating transcriptome assembly score (S)
 assembly_score <- tr_scores[, mean(transcript_score)]
 
 #Writing transcript scores to file

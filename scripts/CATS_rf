@@ -18,7 +18,7 @@ usage () {
  echo "-r: Mean transcript coverage distribution breakpoints (specified with x,y,z...), default: 0,5,10,20,40,60,80,100" >&2
  echo "-l: Proportion of transcript length for positional relative coverage distribution analysis, default: 0.01" >&2
  echo "-n: Proportion of transcript length for transcript end definition when calculating mean transcript end coverage, default: 0.02" >&2
- echo "-k: Rolling window size for local coverage calculation (in bp) when defining low-coverage regions (LCR), default: 10 bp" >&2
+ echo "-k: Rolling window size for local coverage calculation (in bp) when defining low-coverage regions (LCR), default: 10" >&2
  echo "-z: Local coverage threshold for LCR characterization, default: 3" >&2
  echo "-u: Per-transcript proportion of LCR bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,1" >&2
  echo "-w: Base coverage weight, default: 1.5" >&2
@@ -28,11 +28,12 @@ usage () {
  echo "-A: Minimum accuracy for a base to be considered accurate, default: 0.95" >&2
  echo "-P: Per-transcript proportion of accurate bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1"  >&2
  echo "-L: Proportion of transcript length for positional accuracy distribution analysis, default: 0.01" >&2
- echo "-K: Rolling window size for local accuracy calculation (in bp) when defining low-accuracy regions (LAR), default: 10 bp" >&2
+ echo "-K: Rolling window size for local accuracy calculation (in bp) when defining low-accuracy regions (LAR), default: 10" >&2
+ echo "-Z: Local accuracy threshold for LAR characterization, default: 0.98" >&2
  echo "-U: Per-transcript proportion of LAR bases distribution breakpoints (specified with x,y,z...), default: 0,0.2,0.4,0.6,0.8,0.85,0.9,0.95,0.99,1" >&2
  echo "-E: LAR extension penalty, default: 0.1" >&2
- echo "Paired-end analysis options:" >&2
- echo "-d: Maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation (in bp), default: 40 bp" >&2
+ echo "Paired-end read analysis options:" >&2
+ echo "-d: Maximum distance from transcript ends for reads with unmapped pair to be considered evidence of transcript end incompleteness or fragmentation (in bp), default: 40" >&2
  echo "-x: Multiplicative factor for lower distance outlier threshold calculation, default: 8" >&2
  echo "-X: Multiplicative factor for higher distance outlier threshold calculation, default: 10" >&2
  echo "-c: Correction factor for distance outlier threshold calculation, default: 5" >&2
@@ -46,9 +47,9 @@ usage () {
  echo "-G: Percentage of available RAM used by GNU sort, default: 50" >&2
  echo "-M: Memory block size for GNU Parallel, default: 512M" >&2
  echo "-T: Number of splits performed on positional and read pair mapping tables, default: 3" >&2
- echo "-D: Output directory name, default: TRANSCRIPTOME_CATS_rf_dir" >&2
- echo "-o: Output file prefix, default: TRANSCRIPTOME_¢CATS_rf" >&2
- echo "-O: Overwrite the results directory, default: off" >&2
+ echo "-D: CATS-rf output directory name, default: TRANSCRIPTOME_CATS_rf_dir" >&2
+ echo "-o: CATS-rf output file prefix, default: TRANSCRIPTOME" >&2
+ echo "-O: Overwrite the CATS-rf output directory, default: off" >&2
  echo "-h: Show usage information" >&2
  exit 1
 }
@@ -349,7 +350,7 @@ else
  check_files "${TRANSCRIPTOME}" "${READS1}"
 fi
 
-#Setting the default directory name
+#Setting the default output directory name
 if [[ -z "${OUT_DIR}" ]]
 then
  OUT_DIR="$(basename "${TRANSCRIPTOME}")_CATS_rf_dir"
@@ -358,7 +359,7 @@ fi
 #Setting the default output prefix
 if [[ -z "${OUT_PREF}" ]]
 then
- OUT_PREF="$(basename "${TRANSCRIPTOME}")_CATS_rf"
+ OUT_PREF="$(basename "${TRANSCRIPTOME}")"
 fi
 
 #Checking the overwrite argument
@@ -398,16 +399,16 @@ test_numeric_arg "${SEED}" "SEED" 12345 "Supplied an incorrect value for the ran
 test_numeric_arg "${READ_MAP_N}" "READ_MAP_N" 10 "Supplied an incorrect value for the maximum number of distinct mappings per read, defaulting to 10"
 test_numeric_arg "${POS_REL_COV_PROP}" "POS_REL_COV_PROP" 0.01 "Supplied an incorrect value for the proportion of transcript length for positional relative coverage distribution analysis, defaulting to 0.01"
 test_numeric_arg "${COV_MEAN_END_PROP}" "COV_MEAN_END_PROP" 0.02 "Supplied an incorrect value for the proportion of transcript length for transcript end definition when calculating mean transcript end coverage, defaulting to 0.02"
-test_numeric_arg "${LOCAL_COV_WINDOW_SIZE}" "LOCAL_COV_WINDOW_SIZE" 10 "Supplied an incorrect value for the rolling window size for local coverage calculation when defining low-coverage regions, defaulting to 10 bp"
+test_numeric_arg "${LOCAL_COV_WINDOW_SIZE}" "LOCAL_COV_WINDOW_SIZE" 10 "Supplied an incorrect value for the rolling window size for local coverage calculation when defining low-coverage regions, defaulting to 10"
 test_numeric_arg "${LOCAL_COV_THR}" "LOCAL_COV_THR" 3 "Supplied an incorrect value for the local coverage threshold for LCR characterization, defaulting to 3"
 test_numeric_arg "${BASE_COV_WEIGHT}" "BASE_COV_WEIGHT" 1.5 "Supplied an incorrect value for the base coverage weight, defaulting to 1.5"
 test_numeric_arg "${LCR_EX_PEN}" "LCR_EX_PEN" 0.5 "Supplied an incorrect value for the LCR extension penalty, defaulting to 0.5"
 test_numeric_arg "${BASE_ACC_THR}" "BASE_ACC_THR" 0.95 "Supplied an incorrect value for the minimum accuracy for a base to be considered accurate, defaulting to 0.95"
 test_numeric_arg "${POS_ACC_PROP}" "POS_ACC_PROP" 0.01 "Supplied an incorrect value for the proportion of transcript length for positional accuracy distribution analysis, defaulting to 0.01"
-test_numeric_arg "${LOCAL_ACC_WINDOW_SIZE}" "LOCAL_ACC_WINDOW_SIZE" 10 "Supplied an incorrect value for the rolling window size for local accuracy calculation when defining low-accuracy regions, defaulting to 10 bp"
+test_numeric_arg "${LOCAL_ACC_WINDOW_SIZE}" "LOCAL_ACC_WINDOW_SIZE" 10 "Supplied an incorrect value for the rolling window size for local accuracy calculation when defining low-accuracy regions, defaulting to 10"
 test_numeric_arg "${LOCAL_ACC_THR}" "LOCAL_ACC_THR" 0.98 "Supplied an incorrect value for the local accuracy threshold for LAR characterization, defaulting to 0.98"
 test_numeric_arg "${LAR_EX_PEN}" "LAR_EX_PEN" 0.1 "Supplied an incorrect value for the LAR extension penalty, defaulting to 0.1"
-test_numeric_arg "${INCOMP_BRIDGE_TR_END_DIST}" "INCOMP_BRIDGE_TR_END_DIST" 40 "Supplied an incorrect value for the maximum distance from transcript ends for reads to be considered evidence of transcript end incompleteness or fragmentation, defaulting to 40 bp"
+test_numeric_arg "${INCOMP_BRIDGE_TR_END_DIST}" "INCOMP_BRIDGE_TR_END_DIST" 40 "Supplied an incorrect value for the maximum distance from transcript ends for reads with unmapped pair to be considered evidence of transcript end incompleteness or fragmentation, defaulting to 40"
 test_numeric_arg "${DIST_THR_FACT_LOWER}" "DIST_THR_FACT_LOWER" 8 "Supplied an incorrect value for the multiplicative factor for lower distance outlier threshold calculation, defaulting to 8"
 test_numeric_arg "${DIST_THR_FACT_HIGHER}" "DIST_THR_FACT_HIGHER" 10 "Supplied an incorrect value for the multiplicative factor for higher distance outlier threshold calculation, defaulting to 10"
 test_numeric_arg "${DIST_THR_CORR_FACT}" "DIST_THR_CORR_FACT" 5 "Supplied an incorrect value for the correction factor for distance outlier threshold calculation, defaulting to 5"
@@ -448,9 +449,9 @@ else
  SPLIT_N=30
 fi
 
-#Creating output directory
+#Creating the output directory
 mkdir "${OUT_DIR}"
-check_exit_status "Creating output directory failed"
+check_exit_status "Creating the output directory failed"
 
 #Creating symbolic links
 ln -s -r -t "${OUT_DIR}" "${TRANSCRIPTOME}"
@@ -634,10 +635,10 @@ samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | awk 'NR == FNR {data[$1];
 samtools view -H -@ "${THREAD_N}" "${OUT_PREF}.bam" > "${OUT_PREF}_bam_header"
 rm "${OUT_PREF}.bam"
 
-#Converting sampled read mappings to bed format - for paired-end analysis
+#Converting sampled read mappings to bed format - for paired-end read analysis
 if [[ "${LIB_CONF}" = "pe" ]]
 then
- write_log INFO "Preparing prerequisites for paired-end analysis"
+ write_log INFO "Preparing prerequisites for paired-end read analysis"
  cat "${OUT_PREF}_bam_header" "${OUT_PREF}_sampled_mappings.sam" | samtools view -b -h -@ "${THREAD_ADJ3_N}" - | samtools sort -@ "${THREAD_ADJ3_N}" -o "sorted_${OUT_PREF}_sampled_mappings.bam" 2> /dev/null
  bamToBed -i "sorted_${OUT_PREF}_sampled_mappings.bam" | awk -v OFS='\t' '{print $4, $1, $2 + 1, $3, $6}' |  awk -v OFS='\t' '{sub(/\/.*/, "", $1)} 1' > "${OUT_PREF}_sampled_mappings.bed"
  check_exit_status "Bedtools (bamToBed) failed"
@@ -700,10 +701,10 @@ CATS_rf_cov_acc_analysis.R "${OUT_PREF}" "${THREAD_N}" "${COV_PROP_BREAKS}" "${T
 check_exit_status "Coverage and accuracy analysis failed"
 rm x[0-2][0-9]"_sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
 
-#Preparing for paired-end analysis
+#Preparing for paired-end read analysis
 if [[ "${LIB_CONF}" = "pe" ]]
 then
- write_log INFO "Preparing for paired-end analysis"
+ write_log INFO "Preparing for paired-end read analysis"
  cut -c 1 "${OUT_PREF}_sampled_mappings.bed" | paste "${OUT_PREF}_sampled_mappings.bed"  - > "${OUT_PREF}_sampled_mappings_pair_N" && rm "${OUT_PREF}_sampled_mappings.bed"
  cut -f 1 "${OUT_PREF}_sampled_mappings_pair_N" | cut -c 3- | paste "${OUT_PREF}_sampled_mappings_pair_N"  - | cut  -f 2,3,4,5,6,7 > "${OUT_PREF}_sampled_mappings_pair_N_frag_id" && rm "${OUT_PREF}_sampled_mappings_pair_N"
  sort -n -k 6 -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "${OUT_PREF}_sampled_mappings_pair_N_frag_id" > "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
@@ -711,10 +712,10 @@ then
  split --number=l/"${COV_ACC_PAIR_TABLE_SPLIT_N}" -d "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
  rm "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
 
-#Performing paired-end analysis
- write_log INFO "Performing paired-end analysis"
- CATS_rf_paired_end_analysis.R "${THREAD_N}" "${TRANSCRIPTOME}_lengths.tsv" "${INCOMP_BRIDGE_TR_END_DIST}" "${STRANDNESS}" "${DIST_THR_CORR_FACT}" "${DIST_THR_FACT_LOWER}" "${DIST_THR_FACT_HIGHER}" "${OUT_PREF}" "${IMP_WITHIN_READ_PROP_BREAKS}" "${DIFF_TR_PAIR_READ_PROP_BREAKS}" "${ALPHA_COMP_FACT}" "${BETA_COMP_FACT}" "${FRAG_TR_BRIDGE_N}"
- check_exit_status "Paired-end analysis failed"
+#Performing paired-end read analysis
+ write_log INFO "Performing paired-end read analysis"
+ CATS_rf_paired_end_read_analysis.R "${THREAD_N}" "${TRANSCRIPTOME}_lengths.tsv" "${INCOMP_BRIDGE_TR_END_DIST}" "${STRANDNESS}" "${DIST_THR_CORR_FACT}" "${DIST_THR_FACT_LOWER}" "${DIST_THR_FACT_HIGHER}" "${OUT_PREF}" "${IMP_WITHIN_READ_PROP_BREAKS}" "${DIFF_TR_PAIR_READ_PROP_BREAKS}" "${ALPHA_COMP_FACT}" "${BETA_COMP_FACT}" "${FRAG_TR_BRIDGE_N}"
+ check_exit_status "Paired-end read analysis failed"
  rm "${TRANSCRIPTOME}_lengths.tsv" x[0-9][0-9]
 
 #Generating transcriptome assembly socres
@@ -722,7 +723,7 @@ then
  CATS_rf_generate_assembly_score.R "${THREAD_N}" "${OUT_PREF}_coverage_stats.tsv" "${OUT_PREF}"
  check_exit_status "Generating transcriptome assembly scores failed"
 
-#Writing results to standard output
+#Writing the main results to standard output
  echo ""
  echo "----- Transcriptome scores -----"
  cat "${OUT_PREF}_assembly_score_summary.tsv"
@@ -733,5 +734,5 @@ else
 fi
 
 #Exiting
-write_log INFO "Thank you for using CATS-rf! The transcriptome assembly quality assessment results can be found in ${OUT_DIR}"
+write_log INFO "Thank you for using CATS-rf! The CATS-rf transcriptome assembly quality assessment output can be found in ${OUT_DIR}"
 exit 0

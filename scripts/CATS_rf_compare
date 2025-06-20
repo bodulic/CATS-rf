@@ -1,0 +1,221 @@
+#!/bin/bash
+#Defining usage and exiting (function)
+usage () {
+ echo "CATS-rf version 1.0.0 - transcriptome assembly comparison script" >&2
+ echo "USAGE ${0} [OPTIONS] CATS_RF_DIR ..." >&2
+ echo "Graphical options:" >&2
+ echo "-x: Figure extension, default: png" >&2
+ echo "-d: Figure DPI, default: 300" >&2
+ echo "-r: Raincloud plot colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted Set1 palette from RColorBrewer package" >&2
+ echo "-l: Lineplot colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted Set1 palette from RColorBrewer package" >&2
+ echo "-H: Histogram colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted Set1 palette from RColorBrewer package" >&2
+ echo "-b: Barplot colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted YlOrRd palette from RColorBrewer package" >&2
+ echo "-q: Maximum right-tail distribution quantile for histograms, default: 0.98" >&2
+ echo "General options:" >&2
+ echo "-t: Number of CPU threads, default: 10" >&2
+ echo "-D: Comparison output directory name, default: CATS_rf_comparison" >&2
+ echo "-O: Overwrite the comparison output directory, default: off" >&2
+ echo "-h: Show usage information" >&2
+ exit 1
+}
+
+#Addingg date and time to log messages (function)
+write_log () {
+ local LOG_TYPE="${1}"
+ shift 1
+ local MESSAGE="${*}"
+ echo "$(date '+%d/%m/%Y %H:%M:%S'):${LOG_TYPE}: ${MESSAGE}" >&2
+}
+
+#Checking executables (function)
+check_executable () {
+ for EXECUTABLE in "${@}"
+ do
+  if ! [[ -x $(command -v "${EXECUTABLE}") ]]
+  then
+   write_log ERROR "${EXECUTABLE} could not be found. Please check the supplied path"
+   exit 1
+  fi
+ done
+}
+
+#Checking the supplied directories (function)
+check_directories() {
+ for DIRECTORY in "${@}"
+ do
+  if [[ -d "${DIRECTORY}" ]]
+  then
+   if [[ -z $(ls "${DIRECTORY}") ]]
+   then
+    write_log ERROR "${DIRECTORY} is empty"
+    exit 1
+   fi
+  else
+   write_log ERROR "${DIRECTORY} cannot be found (or is not a directory). Please check the supplied path"
+   exit 1
+  fi
+ done
+}
+
+#Checking the exit status of the last command (function)
+check_exit_status () {
+ local EXIT_STATUS="${?}"
+ local MESSAGE="${*}"
+ if [[ "${EXIT_STATUS}" -ne 0 ]]
+ then
+  write_log ERROR "${MESSAGE}"
+  exit 1
+ fi
+}
+
+#Testing numerical arguments (function)
+test_numeric_arg () {
+ local NUM_REGEX='^[0-9]+(\.[0-9]+)?$'
+ local NUMERIC_ARG="${1}"
+ local VAR_NAME="${2}"
+ local ARG_DEF_VALUE="${3}"
+ shift 3
+ local MESSAGE="${*}"
+ if [[ -n "${NUMERIC_ARG}" && ! "${NUMERIC_ARG}" =~ ${NUM_REGEX} ]]
+ then
+  export "${VAR_NAME}"="${ARG_DEF_VALUE}"
+  write_log WARNING "${MESSAGE}"
+ fi
+}
+
+#Defining default parameters
+FIGURE_EXT="png"
+FIGURE_DPI=300
+RP_COLORS="#E41A1C,#377EB8,#4DAF4A,#984EA3,#FF7F00,#A65628,#F781BF,#999999"
+LP_COLORS="#E41A1C,#377EB8,#4DAF4A,#984EA3,#FF7F00,#A65628,#F781BF,#999999"
+HI_COLORS="#E41A1C,#377EB8,#4DAF4A,#984EA3,#FF7F00,#A65628,#F781BF,#999999"
+BP_COLORS="#FFEDA0,#FED976,#FEB24C,#FD8D3C,#FC4E2A,#E31A1C,#BD0026"
+HI_MAX_QUANTILE=0.98
+THREAD_N=10
+OUT_DIR="CATS_rf_comparison"
+OVERWRITE_RES="F"
+
+#Saving the script call
+CALL="$(echo "${0} ${@}")"
+
+#Defining options
+while getopts ":x:d:r:l:H:b:q:t:D:Oh" OPT; do
+ case "${OPT}" in
+  x) FIGURE_EXT="${OPTARG}"
+     ;;
+  d) FIGURE_DPI="${OPTARG}"
+     ;;
+  r) RP_COLORS="${OPTARG}"
+     ;;
+  l) LP_COLORS="${OPTARG}"
+     ;;
+  H) HI_COLORS="${OPTARG}"
+     ;;
+  b) BP_COLORS="${OPTARG}"
+     ;;
+  q) HI_MAX_QUANTILE="${OPTARG}"
+     ;;
+  t) THREAD_N="${OPTARG}"
+     ;;
+  D) OUT_DIR="${OPTARG}"
+     ;;
+  O) OVERWRITE_RES="T"
+     ;;
+  h) usage
+     ;;
+  ?) write_log ERROR "Unknown flag supplied: -${OPTARG}"
+     usage
+     ;;
+ esac
+done
+shift "$(( OPTIND - 1 ))"
+
+#Displaying usage when calling the script without arguments
+if [[ "${#}" -eq 0 ]]
+then
+ usage
+fi
+
+#Save log output to file and STDERR
+LOG_FILE="CATS_rf_compare_run_$(date '+%Y%m%d_%H%M%S')"
+exec 3>&2
+exec 2> >(tee "$LOG_FILE" >&3)
+
+#Printing welcome message
+echo "Welcome to CATS-rf transcriptome assembly comparison tool (version 1.0.0). Find us on https://github.com/bodulic/CATS-rf/tree/main"
+
+#Checking executable requirements
+check_executable Rscript
+
+#Checking the supplied directories
+check_directories "${@}"
+
+#Checking the overwrite argument
+if [[ -d "${OUT_DIR}" || -f "${OUT_DIR}" ]]
+then
+ if [[ "${OVERWRITE_RES}" = "F" ]]
+ then
+  write_log ERROR "The comparison output directory already exists and the overwrite option is turned off"
+  exit 1
+ elif [[ "${OVERWRITE_RES}" = "T" ]]
+ then
+  rm -r "${OUT_DIR}"
+ fi
+fi
+
+#Testing numerical arguments
+test_numeric_arg "${FIGURE_DPI}" "FIGURE_DPI" 300 "Supplied an incorrect value for figure DPI, defaulting to 300"
+test_numeric_arg "${HI_MAX_QUANTILE}" "HI_MAX_QUANTILE" 0.995 "Supplied an incorrect value for the maximum right-tail distribution quantile for histograms, defaulting to 0.995"
+test_numeric_arg "${THREAD_N}" "THREAD_N" 10 "Supplied an incorrect value for the number of CPU threads, defaulting to 10"
+
+#Creating the output directory
+mkdir "${OUT_DIR}"
+check_exit_status "Creating the output directory failed"
+cd "${OUT_DIR}"
+
+#Writing the script call to file
+echo "${CALL}" > call.log
+
+#Preparing CATS-rf files for comparison
+write_log INFO "Preparing CATS-rf files for comparison"
+FILE_PATTERNS=("general_statistics_table.tsv" "coverage_stats.tsv" "per_base_coverage_distribution.tsv" "relative_coverage_median_by_transcript_position.tsv" "lcr_list.tsv" "accuracy_stats.tsv" "per_base_accuracy_distribution.tsv" "accuracy_median_by_transcript_position.tsv" "lar_list.tsv" "coverage_and_accuracy_analysis_summary.tsv" "local_fidelity_stats.tsv" "integrity_stats.tsv" "paired_end_analysis_summmary.tsv" "transcript_scores.tsv" "assembly_score_summary.tsv")
+COUNTER=1
+for DIRECTORY in "${@}"
+do
+ ln -s -r "../${DIRECTORY}"
+ DIRECTORY="$(basename "${DIRECTORY}")"
+ mkdir "${DIRECTORY}_tmpdir"
+ cd "${DIRECTORY}_tmpdir"
+ for FILE_PATTERN in "${FILE_PATTERNS[@]}"
+ do
+  TARGET_FILE=$(eval echo "../${DIRECTORY}"/*"${FILE_PATTERN}")
+  if ls ${TARGET_FILE} >/dev/null 2>&1
+  then
+   cp ${TARGET_FILE} "${COUNTER}%$(basename "${TARGET_FILE}")"
+  else
+   write_log ERROR "The required CATS-rf file ${FILE_PATTERN} is missing in ${DIRECTORY}. Please re-run CATS-rf"
+   exit 1
+  fi
+ done
+ cd ..
+ rm "${DIRECTORY}"
+ mv "${DIRECTORY}_tmpdir/"* .
+ rm -r "${DIRECTORY}_tmpdir"
+ ((COUNTER=COUNTER+1))
+done
+
+#Preparing for transcriptome assembly comparison
+echo -e "args\n${THREAD_N}\n${RP_COLORS}\n${FIGURE_EXT}\n${FIGURE_DPI}\n${LP_COLORS}\n${HI_MAX_QUANTILE}\n${HI_COLORS}\n${BP_COLORS}" > ext_args
+cp $(which CATS_rf_comparison.Rmd) .
+
+#Comparing transcriptome assemblies
+write_log INFO "Comparing transcriptome assemblies"
+Rscript -e "rmarkdown::render(input='CATS_rf_comparison.Rmd',output_file='CATS_rf_comparison.html')"
+check_exit_status "Transcriptome assembly comparison failed"
+
+#Cleaning up
+rm *"general_statistics_table.tsv" *"coverage_stats.tsv" *"per_base_coverage_distribution.tsv" *"relative_coverage_median_by_transcript_position.tsv" *"lcr_list.tsv" *"accuracy_stats.tsv" *"per_base_accuracy_distribution.tsv" *"accuracy_median_by_transcript_position.tsv" *"lar_list.tsv" *"coverage_and_accuracy_analysis_summary.tsv" *"local_fidelity_stats.tsv" *"integrity_stats.tsv" *"paired_end_analysis_summmary.tsv" *"transcript_scores.tsv" *"assembly_score_summary.tsv" ext_args CATS_rf_comparison.Rmd
+
+#Exiting
+write_log INFO "Thank you for using CATS-rf! The CATS-rf transcriptome assembly comparison output can be found in ${OUT_DIR}"
+exit 0

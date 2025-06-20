@@ -1,0 +1,488 @@
+---
+title: "CATS-rf transcriptome assembly comparison"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+ html_document:
+  toc: true
+  toc_depth: 4
+  toc_float: true
+  smooth_scroll: true
+  number_sections: false
+  theme: journal
+---
+
+```{r, setup, include=F}
+#Loading the required packages
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(ggdist))
+
+#Defining external arguments
+ext_args <- fread("ext_args", header = T, fill = T)
+THREAD_N <- as.numeric(ext_args[, args][1])
+RP_COLORS <- unlist(strsplit(ext_args[, args][2], ","))
+FIGURE_EXT <- ext_args[, args][3]
+FIGURE_DPI <- as.numeric(ext_args[, args][4])   
+LP_COLORS <- unlist(strsplit(ext_args[, args][5], ","))
+HI_MAX_QUANTILE <- as.numeric(ext_args[, args][6])
+HI_COLORS <- unlist(strsplit(ext_args[, args][7], ","))
+BP_COLORS <- unlist(strsplit(ext_args[, args][8], ","))
+
+setDTthreads(THREAD_N)
+options(scipen = 999)
+```
+
+```{r include=F}
+#Importing data (function)
+import_data <- function(import_regex, select_cols = NA) {
+ files_in_directory <- grep(import_regex, list.files(path = "."), value = T)
+ files_in_directory <- files_in_directory[sort(as.numeric(sub("%.*", "", files_in_directory)), index.return = T)$ix]
+ imported_dt <- list()
+ if (import_regex %chin% c("transcript_scores.tsv", "per_base_coverage_distribution.tsv", "coverage_stats.tsv", "relative_coverage_median_by_transcript_position.tsv", "lcr_list.tsv",  "per_base_accuracy_distribution.tsv", "accuracy_stats.tsv", "accuracy_median_by_transcript_position.tsv", "lar_list.tsv", "local_fidelity_stats.tsv", "integrity_stats.tsv")) {
+  for(i in 1 : length(files_in_directory)) {
+   imported_dt[[i]] <- fread(files_in_directory[i], header = T, select = select_cols)
+   imported_dt[[i]][, "full_name" := files_in_directory[i]]
+  }
+  imported_dt <- rbindlist(imported_dt) 
+ } else if (import_regex %chin% c("general_statistics_table.tsv", "assembly_score_summary.tsv", "coverage_and_accuracy_analysis_summary.tsv", "paired_end_analysis_summmary.tsv")) {
+  for (i in 1 : length(files_in_directory)) {
+   if (i == 1) {
+    imported_dt <- fread(files_in_directory[i], sep = "\t", header = F)
+   } else {
+    imported_dt <- cbind(imported_dt, fread(files_in_directory[i], sep = "\t", header = F, select = 2))
+   }
+  }
+  colnames(imported_dt)[-1] <- transcriptome_names
+ }
+ return(imported_dt)
+} 
+
+#Extracting transcriptome assembly filenames (function)
+process_filenames <- function(dt_to_process, file_regex) {
+ dt_to_process[, "full_name" := sub(file_regex, "", full_name, fixed = T)]
+ dt_to_process[, "transcriptome" := sub(".*%", "", full_name)]
+ dt_to_process[nchar(transcriptome) > 20, "transcriptome" := substr(transcriptome, 1, 20)]
+ dt_to_process[, "occurance_N" := rleid(full_name), by = "transcriptome"]
+ dt_to_process[, "full_name" := NULL]
+ dt_to_process[occurance_N != 1, "transcriptome" := paste(transcriptome, occurance_N, sep = ".")]
+ dt_to_process[, "occurance_N" := NULL]
+ return(dt_to_process)
+}
+
+#Generating results kable (function)
+display_kable <- function(dt_to_display) {
+ param_column <- dt_to_display[, 1] 
+ tr_columns <- dt_to_display[, -1]          
+ chunk_N <- ceiling(ncol(tr_columns) / KABLE_PER_CHUNK_COL_N)
+ for (i in (1 : chunk_N)) {
+  start_col <- (i - 1) * KABLE_PER_CHUNK_COL_N + 1
+  end_col <- min(i * KABLE_PER_CHUNK_COL_N, ncol(tr_columns))
+  dt_to_display <- cbind(param_column, tr_columns[, start_col : end_col])
+  colnames(dt_to_display)[1] <- "Parameter"
+  print(kable(dt_to_display))
+ }
+}
+
+#Generating plots for a numerical variable (function)
+analyse_numerical_variable <- function(dt_to_analyse_filename, variable_to_plot, plot_type, plot_axis_title_filename) {
+ if(plot_type %chin% c("raincloud", "histogram")) {  
+  dt_to_analyse <- import_data(dt_to_analyse_filename, variable_to_plot)
+ } else if (plot_type == "lineplot") {
+  dt_to_analyse <- import_data(dt_to_analyse_filename, c(variable_to_plot, "position_prop_category"))  
+ }
+ dt_to_analyse <- process_filenames(dt_to_analyse, paste0("_", dt_to_analyse_filename))
+ if(plot_type == "raincloud") {
+  dt_to_analyse[, "transcriptome" := factor(transcriptome, levels = rev(transcriptome_names))]
+   
+  variable_rp <- ggplot(data = dt_to_analyse, aes(x = transcriptome, y = .data[[variable_to_plot]], fill = transcriptome)) +
+   stat_halfeye(normalize = "groups", justification = -0.1, width = 0.9, .width = 0, point_colour = NA, alpha = 0.8) +
+   geom_boxplot(width = 0.1, outlier.shape = NA, alpha = 0.8) +
+   theme_bw() +
+   scale_fill_manual(values = RP_COLORS) +
+   theme(legend.position = "none") +
+   coord_flip() +
+   xlab("Transcriptome") +
+   ylab(plot_axis_title_filename) +
+   ggtitle(paste(plot_axis_title_filename, "distribution"))
+  ggsave(variable_rp, filename = paste(tolower(gsub(" ", "_", plot_axis_title_filename, fixed =  T)), FIGURE_EXT, sep = "."), height = RP_HEIGHT, width = RP_WIDTH, dpi = FIGURE_DPI)
+  
+ } else if (plot_type == "lineplot") {
+  dt_to_analyse[, "position_prop_category" := as.numeric(sub(".*?(\\d+\\.?\\d*).*", "\\1", position_prop_category))]
+  dt_to_analyse[, "transcriptome" := factor(transcriptome, levels = transcriptome_names)]
+  
+  variable_lp <- ggplot(data = dt_to_analyse, aes(x = position_prop_category, y = .data[[variable_to_plot]], group = transcriptome, color = transcriptome)) +
+   geom_line(size = 0.7) +
+   theme_bw() +
+   scale_color_manual(values = LP_COLORS) +
+   guides(color = guide_legend(nrow = ceiling(TRANSCRIPTOME_N / 4), byrow = T)) +
+   theme(legend.position = "top") +
+   theme(legend.title = element_blank()) +
+   xlab("Transcript length proportion") +
+   ylab(plot_axis_title_filename) +
+   ggtitle(paste(plot_axis_title_filename, "distribution"))
+  ggsave(variable_lp, filename = paste(tolower(gsub(" ", "_", plot_axis_title_filename, fixed =  T)), FIGURE_EXT, sep = "."), height = LP_HEIGHT, width = LP_WIDTH, dpi = FIGURE_DPI)
+  
+ } else if (plot_type == "histogram") {
+  plotted_value_min <- dt_to_analyse[, min(.SD[[1]], na.rm = T) - 1e-10, .SDcols = variable_to_plot]
+  plotted_value_max <- dt_to_analyse[, quantile(.SD[[1]], HI_MAX_QUANTILE, na.rm = T), .SDcols = variable_to_plot]
+  dt_to_analyse[, "transcriptome" := factor(transcriptome, levels = transcriptome_names)]
+  
+  variable_hi <- ggplot(data = dt_to_analyse, aes(x =.data[[variable_to_plot]], fill = transcriptome)) +
+   geom_histogram(aes(y = after_stat(count / sum(count))), color = "grey40", alpha = 0.8) +
+   theme_bw() +
+   scale_fill_manual(values = HI_COLORS) +
+   theme(legend.position = "none") +
+   facet_grid(transcriptome ~ .) +
+   theme(panel.spacing = unit(0.5, "lines")) +  
+   theme(strip.text.y = element_text(angle = 0)) +
+   scale_x_sqrt(limits = c(plotted_value_min, plotted_value_max)) +
+   xlab(plot_axis_title_filename) +
+   ylab("Relative frequency") +
+   ggtitle(paste(plot_axis_title_filename, "distribution"))
+  ggsave(variable_hi, filename = paste(tolower(gsub(" ", "_", plot_axis_title_filename, fixed =  T)), FIGURE_EXT, sep = "."), height = HI_HEIGHT, width = HI_WIDTH, dpi = FIGURE_DPI) 
+ }
+}
+
+#Generating barplot for a categorical variable (function)
+analyse_categorical_variable <- function(dt_to_analyse_filename, variable_to_plot, plot_legend_title_filename) {
+ if(dt_to_analyse_filename %chin% c("per_base_coverage_distribution.tsv", "per_base_accuracy_distribution.tsv")) {
+  dt_to_analyse <- import_data(dt_to_analyse_filename, c(variable_to_plot, "base_prop"))
+ } else if (dt_to_analyse_filename %chin% c("coverage_stats.tsv", "accuracy_stats.tsv", "local_fidelity_stats.tsv", "integrity_stats.tsv")) {
+  dt_to_analyse <- import_data(dt_to_analyse_filename, variable_to_plot)
+  dt_to_analyse <- dt_to_analyse[is.na(get(variable_to_plot)) == F]
+ }
+ dt_to_analyse <- process_filenames(dt_to_analyse, paste0("_", dt_to_analyse_filename))
+ dt_to_analyse[, (variable_to_plot) := gsub("\\(*|\\[*|\\]*", "", get(variable_to_plot))]
+ dt_to_analyse[, (variable_to_plot) := sub(",", " - ", get(variable_to_plot), fixed = T)]
+ dt_to_analyse[, "order_col" := as.numeric(sub(".*?(\\d+\\.?\\d*).*", "\\1", get(variable_to_plot)))]
+ setorder(dt_to_analyse, order_col)
+ dt_to_analyse[, "order_col" := NULL]
+ var_cat_levels <- unique(dt_to_analyse[, get(variable_to_plot)])
+ dt_to_analyse[, (variable_to_plot) := factor(get(variable_to_plot), levels = var_cat_levels)]
+ if (length(var_cat_levels) > length(BP_COLORS)) { 
+  BP_COLORS <- colorRampPalette(BP_COLORS)(length(var_cat_levels)) 
+ }  
+ dt_to_analyse[, "transcriptome" := factor(transcriptome, levels = transcriptome_names)]
+ if(dt_to_analyse_filename %chin% c("per_base_coverage_distribution.tsv", "per_base_accuracy_distribution.tsv")) {
+ 
+  variable_bp <- ggplot(data = dt_to_analyse, aes(x = transcriptome, y = base_prop, fill = .data[[variable_to_plot]])) +
+   geom_bar(stat = "identity", position = "fill", width = BP_BAR_WIDTH, color = "black", alpha = 0.85) +
+   theme_bw() +
+   scale_fill_manual(values = BP_COLORS[(length(BP_COLORS) - length(var_cat_levels) + 1) : length(BP_COLORS)], name = plot_legend_title_filename) +
+   guides(fill = guide_legend(nrow = ceiling(length(var_cat_levels) / 5), byrow = T)) +
+   theme(legend.position = "top") +
+   xlab("Transcriptome") +
+   ylab("Base proportion") +
+   theme(axis.text.x = element_text(angle = BP_AXIS_ANGLE, hjust = BP_AXIS_HJUST, size = BP_LABEL_SIZE)) +
+   ggtitle(paste(plot_legend_title_filename, "category distribution"))
+  
+ } else if (dt_to_analyse_filename %chin% c("coverage_stats.tsv", "accuracy_stats.tsv", "local_fidelity_stats.tsv", "integrity_stats.tsv")) {
+   
+  variable_bp <- ggplot(data = dt_to_analyse, aes(x = transcriptome, fill = .data[[variable_to_plot]])) +
+   geom_bar(position = "fill",  width = BP_BAR_WIDTH, color = "black", alpha = 0.85) +
+   theme_bw() +
+   scale_fill_manual(values = BP_COLORS[(length(BP_COLORS) - length(var_cat_levels) + 1) : length(BP_COLORS)], name = plot_legend_title_filename) +
+   guides(fill = guide_legend(nrow = ceiling(length(var_cat_levels) / 5), byrow = T)) +
+   theme(legend.position = "top") +
+   xlab("Transcriptome") +
+   ylab("Transcript proportion") +
+   theme(axis.text.x = element_text(angle = BP_AXIS_ANGLE, hjust = BP_AXIS_HJUST, size = BP_LABEL_SIZE)) +
+   ggtitle(paste(plot_legend_title_filename, "category distribution"))
+ }
+ ggsave(variable_bp, filename = paste(tolower(gsub(" ", "_", plot_legend_title_filename, fixed =  T)), FIGURE_EXT, sep = "."), height = 5, width = BP_WIDTH, dpi = FIGURE_DPI)
+}
+```
+
+
+### Outline
+
+This HTML document contains the output of CATS-rf transcriptome assembly comparison tool. For more details on each table and figure, refer to the tool's [documentation](https://github.com/bodulic/CATS-rf).
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F}
+#Detecting transcriptome assembly names
+transcriptome_names <- grep("coverage_stats.tsv", list.files(path = "."), value = T)
+transcriptome_names <- data.table(full_name = transcriptome_names[sort(as.numeric(sub("%.*", "", transcriptome_names)), index.return = T)$ix])
+transcriptome_names <- process_filenames(transcriptome_names, "_coverage_stats.tsv")[, transcriptome]
+
+#Calculating the number of transcriptome assemblies and the maximum assembly name length
+TRANSCRIPTOME_N <- length(transcriptome_names)
+TR_NAME_LEN_MAX <- max(nchar(transcriptome_names))
+
+#Setting kable and plotting arguments
+KABLE_PER_CHUNK_COL_N <- c(9, 8, 7)[findInterval(TR_NAME_LEN_MAX, c(0, 10, 15, Inf))]
+if (TRANSCRIPTOME_N > length(RP_COLORS)) {
+ RP_COLORS <- colorRampPalette(RP_COLORS)(TRANSCRIPTOME_N)
+}
+RP_HEIGHT <- c(4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)[findInterval(TRANSCRIPTOME_N, c(0, 6, 11, 18, 26, 31, 41, 51, 60, 65, 70, 88, 95, 101, 105, Inf))]
+RP_WIDTH <- RP_HEIGHT + 2
+if (TRANSCRIPTOME_N > length(LP_COLORS)) {
+ LP_COLORS <- colorRampPalette(LP_COLORS)(TRANSCRIPTOME_N)
+}
+LP_HEIGHT  <- c(4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15, 15.5, 16, 16.5, 17, 17.5)[findInterval(TRANSCRIPTOME_N, c(0, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 97, 101, 105, Inf))]
+LP_WIDTH <- LP_HEIGHT + 1.5
+if (TRANSCRIPTOME_N > length(HI_COLORS)) {
+ HI_COLORS <- colorRampPalette(HI_COLORS)(TRANSCRIPTOME_N)
+}
+HI_HEIGHT  <- c(5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)[findInterval(TRANSCRIPTOME_N, c(0, 6, 11, 18, 26, 31, 41, 51, 60, 65, 70, 88, 95, 101, 105, Inf))]
+HI_WIDTH <- HI_HEIGHT + 1.5
+BP_BAR_WIDTH <- c(0.25, 0.4, 0.75, 0.8, 0.85)[findInterval(TRANSCRIPTOME_N, c(0, 2, 4, 7, 9, Inf))]
+BP_AXIS_ANGLE <- fifelse(TRANSCRIPTOME_N <= 4, 0, 45)
+BP_AXIS_HJUST <- fifelse(BP_AXIS_ANGLE == 0, 0.5, 0.9)
+BP_LABEL_SIZE <- c(8, 7.5, 7)[findInterval(TR_NAME_LEN_MAX, c(0, 10, 15, Inf))]
+BP_WIDTH <- c(7, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5)[findInterval(TRANSCRIPTOME_N, c(0, 16, 21, 26, 36, 61, 81, 93, 105, Inf))]
+```
+
+### General transcriptome assembly statistics
+
+**Table 1.** General transcriptome assembly statistics.
+
+```{r echo=F, message=F, warning=F, fig.align='center', results="asis"}
+#Importing general transcriptome assembly statistics from files
+general_trans_stats <- import_data("general_statistics_table.tsv")
+colnames(general_trans_stats) <- c("Parameter", transcriptome_names)
+
+#Writing full general transcriptome assembly statistics to file
+write.table(general_trans_stats, file = "CATS_rf_general_statistics.tsv", sep = "\t", row.names = F, col.names = T, quote = F)
+
+#Displaying general transcriptome assembly statistics kable
+display_kable(general_trans_stats)
+rm(general_trans_stats)
+```
+IQR = interquartile range
+
+### Assembly scores
+
+**Table 2.** Transcript score component statistics and assembly scores.
+
+```{r echo=F, message=F, warning=F, fig.align='center', results="asis"}
+#Importing transcript score component statistics and assembly scores from files
+assembly_scores <- import_data("assembly_score_summary.tsv")
+colnames(assembly_scores) <- c("Parameter", transcriptome_names)
+
+#Writing full transcript score component statistics and assembly scores to file
+write.table(assembly_scores, file = "CATS_rf_assembly_scores.tsv", sep = "\t", row.names = F, col.names = T, quote = F)
+
+#Displaying transcript score component statistics and assembly scores kable
+display_kable(assembly_scores)
+rm(assembly_scores)
+```
+IQR = interquartile range
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
+#Displaying transcript score raincloud plot
+analyse_numerical_variable("transcript_scores.tsv", "transcript_score", "raincloud", "Transcript score")
+knitr::include_graphics(paste("transcript_score", FIGURE_EXT, sep = "."))
+```
+**Figure 1.** Transcript score distribution.
+<br>
+<br>
+
+### Coverage and accuracy statistics
+
+**Table 3.** Coverage and accuracy statistics.
+
+```{r echo=F, message=F, warning=F, fig.align='center', results="asis"}
+#Importing coverage and accuracy statistics from files
+coverage_accuracy_statistics <- import_data("coverage_and_accuracy_analysis_summary.tsv")
+colnames(coverage_accuracy_statistics) <- c("Parameter", transcriptome_names)
+
+#Writing full coverage and accuracy statistics to file
+write.table(coverage_accuracy_statistics, file = "CATS_rf_coverage_accuracy_statistics.tsv", sep = "\t", row.names = F, col.names = T, quote = F)
+
+#Displaying coverage and accuracy statistics kable
+display_kable(coverage_accuracy_statistics)
+rm(coverage_accuracy_statistics)
+```
+IQR = interquartile range, LCR = low-coverage region, LAR = low-accuracy region
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying per-base coverage barplot
+analyse_categorical_variable("per_base_coverage_distribution.tsv", "coverage_category", "Base coverage")
+knitr::include_graphics(paste("base_coverage", FIGURE_EXT, sep = "."))
+```
+**Figure 2.** Per-base coverage category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying proportion of covered bases per transcript barplot
+analyse_categorical_variable("coverage_stats.tsv", "covered_base_prop_category", "Proportion of covered bases")
+knitr::include_graphics(paste("proportion_of_covered_bases", FIGURE_EXT, sep = "."))
+```
+**Figure 3.** Proportion of covered bases per transcript category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying mean transcript coverage barplot
+analyse_categorical_variable("coverage_stats.tsv", "coverage_mean_category", "Mean transcript coverage")
+knitr::include_graphics(paste("mean_transcript_coverage", FIGURE_EXT, sep = "."))
+```
+**Figure 4.** Mean transcript coverage category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`LP_HEIGHT`, fig.width=`LP_WIDTH`}
+#Displaying positional relative coverage lineplot
+analyse_numerical_variable("relative_coverage_median_by_transcript_position.tsv", "relative_coverage_median", "lineplot", "Positional relative coverage median")
+knitr::include_graphics(paste("positional_relative_coverage_median", FIGURE_EXT, sep = "."))
+```
+**Figure 5.** Positional relative coverage distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`HI_HEIGHT`, fig.width=`HI_WIDTH`}
+#Displaying maximum uncovered region length per transcript histogram
+analyse_numerical_variable("coverage_stats.tsv", "uncov_region_length_max", "histogram", "Maximum uncovered region length")
+knitr::include_graphics(paste("maximum_uncovered_region_length", FIGURE_EXT, sep = "."))
+```
+**Figure 6.** Maximum uncovered region length per transcript distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`HI_HEIGHT`, fig.width=`HI_WIDTH`}
+#Displaying mean transcript end coverage per transcript histogram
+analyse_numerical_variable("coverage_stats.tsv", "transcript_end_coverage_mean", "histogram", "Mean transcript end coverage")
+knitr::include_graphics(paste("mean_transcript_end_coverage", FIGURE_EXT, sep = "."))
+```
+**Figure 7.** Mean transcript end coverage per transcript distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying proportion of bases in low-coverage regions per transcript barplot
+analyse_categorical_variable("coverage_stats.tsv", "lcr_base_prop_category", "Proportion of bases in LCRs")
+knitr::include_graphics(paste("proportion_of_bases_in_lcrs", FIGURE_EXT, sep = "."))
+```
+**Figure 8.** Proportion of bases in low-coverage regions per transcript category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`HI_HEIGHT`, fig.width=`HI_WIDTH`}
+#Displaying low-coverage region length histogram
+analyse_numerical_variable("lcr_list.tsv", "lcr_length", "histogram", "LCR length")
+knitr::include_graphics(paste("lcr_length", FIGURE_EXT, sep = "."))
+```
+**Figure 9.** Low-coverage region length distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
+#Displaying coverage score component raincloud plot
+analyse_numerical_variable("coverage_stats.tsv", "coverage_score_component", "raincloud", "Coverage score component")
+knitr::include_graphics(paste("coverage_score_component", FIGURE_EXT, sep = "."))
+```
+**Figure 10.** Coverage score component distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying per-base accuracy barplot
+analyse_categorical_variable("per_base_accuracy_distribution.tsv", "accuracy_category", "Base accuracy")
+knitr::include_graphics(paste("base_accuracy", FIGURE_EXT, sep = "."))
+```
+**Figure 11.** Per-base accuracy category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying proportion of accurate bases per transcript barplot
+analyse_categorical_variable("accuracy_stats.tsv", "acc_base_prop_category", "Proportion of accurate bases")
+knitr::include_graphics(paste("proportion_of_accurate_bases", FIGURE_EXT, sep = "."))
+```
+**Figure 12.** Proportion of accurate bases per transcript category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`LP_HEIGHT`, fig.width=`LP_WIDTH`}
+#Displaying positional accuracy lineplot
+analyse_numerical_variable("accuracy_median_by_transcript_position.tsv", "accuracy_median", "lineplot", "Positional accuracy median")
+knitr::include_graphics(paste("positional_accuracy_median", FIGURE_EXT, sep = "."))
+```
+**Figure 13.** Positional accuracy distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying proportion of bases in low-accuracy regions per transcript barplot
+analyse_categorical_variable("accuracy_stats.tsv", "lar_base_prop_category", "Proportion of bases in LARs")
+knitr::include_graphics(paste("proportion_of_bases_in_lars", FIGURE_EXT, sep = "."))
+```
+**Figure 14.** Proportion of bases in low-accuracy regions per transcript category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`HI_HEIGHT`, fig.width=`HI_WIDTH`}
+#Displaying low-accuracy region length histogram
+analyse_numerical_variable("lar_list.tsv", "lar_length", "histogram", "LAR length")
+knitr::include_graphics(paste("lar_length", FIGURE_EXT, sep = "."))
+```
+**Figure 15.** Low-accuracy region length distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
+#Displaying accuracy score component raincloud plot
+analyse_numerical_variable("accuracy_stats.tsv", "accuracy_score_component", "raincloud", "Accuracy score component")
+knitr::include_graphics(paste("accuracy_score_component", FIGURE_EXT, sep = "."))
+```
+**Figure 16.** Accuracy score component distribution.
+<br>
+<br>
+
+### Paired-end read analysis
+
+**Table 4.** Local fidelity and integrity statistics.
+
+```{r echo=F, message=F, warning=F, fig.align='center', results="asis"}
+#Importing local fidelity and integrity statistics from files
+fidelity_integrity_statistics <- import_data("paired_end_analysis_summmary.tsv")
+colnames(fidelity_integrity_statistics) <- c("Parameter", transcriptome_names)
+
+#Writing full local fidelity and integrity statistics to file
+write.table(fidelity_integrity_statistics, file = "CATS_rf_local_fidelity_integrity_statistics.tsv", sep = "\t", row.names = F, col.names = T, quote = F)
+
+#Displaying local fidelity and integrity statistics kable
+display_kable(fidelity_integrity_statistics)
+rm(fidelity_integrity_statistics)
+```
+IQR = interquartile range
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying per-transcript proportion of improperly paired reads within a transcript barplot
+analyse_categorical_variable("local_fidelity_stats.tsv", "improp_pair_within_tr_read_prop_category", "Proportion of improperly paired reads")
+knitr::include_graphics(paste("proportion_of_improperly_paired_reads", FIGURE_EXT, sep = "."))
+```
+**Figure 17.** Per-transcript proportion of improperly paired reads within a transcript category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
+#Displaying local fidelity score component raincloud plot
+analyse_numerical_variable("local_fidelity_stats.tsv", "local_fidelity_score_component", "raincloud", "Local fidelity score component")
+knitr::include_graphics(paste("local_fidelity_score_component", FIGURE_EXT, sep = "."))
+```
+**Figure 18.** Local fidelity score component distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
+#Displaying per-transcript proportion of reads with pair mapped to another transcript barplot
+analyse_categorical_variable("integrity_stats.tsv", "pair_mapped_to_other_tr_prop_category", "Prop reads with pair mapped to another tr")
+knitr::include_graphics(paste("prop_reads_with_pair_mapped_to_another_tr", FIGURE_EXT, sep = "."))
+```
+**Figure 19.** Per-transcript proportion of reads with pair mapped to another transcript category distribution.
+<br>
+<br>
+
+```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
+#Displaying integrity score component raincloud plot
+analyse_numerical_variable("integrity_stats.tsv", "integrity_score_component", "raincloud", "Integrity score component")
+knitr::include_graphics(paste("integrity_score_component", FIGURE_EXT, sep = "."))
+```
+**Figure 20.** Integrity score component distribution.
+<br>
+<br>

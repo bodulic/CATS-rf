@@ -7,23 +7,23 @@ suppressPackageStartupMessages(library(data.table))
 ext_args <- commandArgs(trailingOnly = T)
 OUT_PREF <- ext_args[1]
 THREAD_N <- as.numeric(ext_args[2])
-COV_PROP_BREAKS <- unlist(strsplit(ext_args[3], ","))
-TR_COV_MEAN_BREAKS <- unlist(strsplit(ext_args[4], ","))
-BASE_COV_BREAKS <- unlist(strsplit(ext_args[5], ","))
+COV_PROP_BREAKS <- as.numeric(unlist(strsplit(ext_args[3], ",")))
+TR_COV_MEAN_BREAKS <- as.numeric(unlist(strsplit(ext_args[4], ",")))
+BASE_COV_BREAKS <- as.numeric(unlist(strsplit(ext_args[5], ",")))
 LOCAL_COV_WINDOW_SIZE <- as.numeric(ext_args[6])
 LOCAL_COV_THR <- as.numeric(ext_args[7])
-LCR_PROP_BREAKS <- unlist(strsplit(ext_args[8], ","))
+LCR_PROP_BREAKS <- as.numeric(unlist(strsplit(ext_args[8], ",")))
 BASE_COV_WEIGHT <- as.numeric(ext_args[9])
 LCR_EX_PEN <- as.numeric(ext_args[10])
 POS_REL_COV_PROP <- as.numeric(ext_args[11])
 COV_MEAN_END_PROP <- as.numeric(ext_args[12])
 POS_ACC_PROP <- as.numeric(ext_args[13])
 BASE_ACC_THR <- as.numeric(ext_args[14])
-ACC_BASE_PROP_BREAKS <- unlist(strsplit(ext_args[15], ","))
-BASE_ACC_BREAKS <- unlist(strsplit(ext_args[16], ","))
+ACC_BASE_PROP_BREAKS <- as.numeric(unlist(strsplit(ext_args[15], ",")))
+BASE_ACC_BREAKS <- as.numeric(unlist(strsplit(ext_args[16], ",")))
 LOCAL_ACC_WINDOW_SIZE <- as.numeric(ext_args[17])
 LOCAL_ACC_THR <- as.numeric(ext_args[18]) 
-LAR_PROP_BREAKS <- unlist(strsplit(ext_args[19], ","))
+LAR_PROP_BREAKS <- as.numeric(unlist(strsplit(ext_args[19], ",")))
 LAR_EX_PEN <- as.numeric(ext_args[20])
 
 #Cutting a categorical variable into intervals (function)
@@ -345,7 +345,7 @@ rm(coverage_stats_dt)
 #Writing per-base coverage to file
 per_base_cov_category_dt <- per_base_cov_category_dt[, .(base_N = sum(base_N)), by = "coverage_cat"]
 per_base_cov_category_dt[, "base_prop" := base_N / base_N_sum]
-per_base_cov_category_dt[, "coverage_cat_ord" := as.numeric(sub(".*?(-?\\d+\\.?\\d*).*", "\\1", coverage_cat))]
+per_base_cov_category_dt[, "coverage_cat_ord" := as.numeric(sub(".*?(\\d+\\.?\\d*).*", "\\1", coverage_cat))]
 setorder(per_base_cov_category_dt, coverage_cat_ord)
 per_base_cov_category_dt[, "coverage_cat_ord" := NULL]
 setnames(per_base_cov_category_dt, c("coverage_category", "base_N", "base_prop"))
@@ -358,7 +358,7 @@ per_base_higher_cov_dt[, "base_prop" := base_N / base_N_sum]
 
 #Writing median relative coverage by transcript position to file
 pos_cov_dt <- pos_cov_dt[, .(rel_cov_mean_median = median(rel_cov_mean, na.rm = T)), by = "position_prop_cat"]
-pos_cov_dt[, "position_prop_cat_ord" := as.numeric(sub(".*?(-?\\d+\\.?\\d*).*", "\\1", position_prop_cat))]
+pos_cov_dt[, "position_prop_cat_ord" := as.numeric(sub(".*?(\\d+\\.?\\d*).*", "\\1", position_prop_cat))]
 setorder(pos_cov_dt, position_prop_cat_ord)
 pos_cov_dt[, "position_prop_cat_ord" := NULL]
 setnames(pos_cov_dt, c("position_prop_category", "relative_coverage_median"))
@@ -387,7 +387,7 @@ rm(accuracy_stats_dt)
 #Writing per-base accuracy to file
 per_base_acc_category_dt <- per_base_acc_category_dt[, .(base_N = sum(base_N)), by = "accuracy_cat"]
 per_base_acc_category_dt[, "base_prop" := base_N / cov_base_N_sum]
-per_base_acc_category_dt[, "accuracy_cat_ord" := as.numeric(sub(".*?(-?\\d+\\.?\\d*).*", "\\1", accuracy_cat))]
+per_base_acc_category_dt[, "accuracy_cat_ord" := as.numeric(sub(".*?(\\d+\\.?\\d*).*", "\\1", accuracy_cat))]
 setorder(per_base_acc_category_dt, accuracy_cat_ord)
 per_base_acc_category_dt[, "accuracy_cat_ord" := NULL]
 setnames(per_base_acc_category_dt, c("accuracy_category", "base_N", "base_prop"))
@@ -400,7 +400,7 @@ per_base_higher_acc_dt[, "base_prop" := base_N / cov_base_N_sum]
 
 #Writing median accuracy by transcript position to file
 pos_acc_dt <- pos_acc_dt[, .(acc_mean_median = median(acc_mean, na.rm = T)), by = "position_prop_cat"]
-pos_acc_dt[, "position_prop_cat_ord" := as.numeric(sub(".*?(-?\\d+\\.?\\d*).*", "\\1", position_prop_cat))]
+pos_acc_dt[, "position_prop_cat_ord" := as.numeric(sub(".*?(\\d+\\.?\\d*).*", "\\1", position_prop_cat))]
 setorder(pos_acc_dt, position_prop_cat_ord)
 pos_acc_dt[, "position_prop_cat_ord" := NULL]
 setnames(pos_acc_dt, c("position_prop_category", "accuracy_median"))
@@ -430,4 +430,4 @@ for(i in 1 : length(BASE_ACC_BREAKS2[])) {
 }
 
 #Writing coverage and accuracy summary to file
-write.table(data.table(parameter = c("% of covered bases per transcript (mean, IQR)", "N, % fully covered transcripts", "N, % fully uncovered transcripts", "Mean coverage per transcript (mean, IQR)", generate_cov_break_labels, "Maximum uncovered region length per transcript (mean, IQR)", "Mean end coverage per transcript (mean, IQR)", "N, % assembly bases in LCR", "% of bases in LCR per transcript (mean, IQR)", "LCR length (mean, IQR)", "Coverage score component (mean, IQR)", paste0("% of accurate bases (bases with accuracy higher than or equal to ", BASE_ACC_THR, ") per transcript (mean, IQR)"), generate_acc_break_labels, "N, % assembly bases in LAR", "% of bases in LAR per transcript (mean, IQR)", "LAR length (mean, IQR)", "Accuracy score component  (mean, IQR)"), value = c(paste0(round(100 * cov_prop_summary[4], 2), "%, ", round(100 * cov_prop_summary[2], 2), "%-", round(100 * cov_prop_summary[5], 2), "%"), paste0(fully_cov_tr_N_sum, ", ", round(100 * fully_cov_tr_N_sum / tr_N, 2), "%"), paste0(fully_uncov_tr_N_sum, ", ", round(100 * fully_uncov_tr_N_sum / tr_N, 2), "%"), paste0(round(cov_mean_summary[4], 2), ", ", round(cov_mean_summary[2], 2), "-", round(cov_mean_summary[5], 2)), paste0(per_base_higher_cov_dt[, base_N], ", ", round(100 * per_base_higher_cov_dt[, base_prop], 2), "%"), paste0(round(ucr_len_max_summary[4], 2), ", ", ucr_len_max_summary[2], "-", ucr_len_max_summary[5]), paste0(round(end_cov_mean_summary[4], 2), ", ", round(end_cov_mean_summary[2], 2), "-", round(end_cov_mean_summary[5], 2)), paste0(lcr_len_sum, ", ", round(100 * lcr_len_sum / base_N_sum, 2), "%"), paste0(round(100 * lcr_prop_summary[4], 2), "%, ", round(100 * lcr_prop_summary[2], 2), "%-", round(100 * lcr_prop_summary[5], 2), "%"), paste0(round(lcr_len_summary[4], 2), ", ", lcr_len_summary[2], "-", lcr_len_summary[5]), paste0(round(cov_score_comp_summary[4], 3), ", ", round(cov_score_comp_summary[2], 3), "-", round(cov_score_comp_summary[5], 3)), paste0(round(100 * acc_base_prop_summary[4], 2), "%, ", round(100 * acc_base_prop_summary[2], 2), "%-", round(100 * acc_base_prop_summary[5], 2), "%"), paste0(per_base_higher_acc_dt[, base_N], ", ", round(100 * per_base_higher_acc_dt[, base_prop], 2), "%"), paste0(lar_len_sum, ", ", round(100 * lar_len_sum / cov_base_N_sum, 2), "%"), paste0(round(100 * lar_prop_summary[4], 2), "%, ", round(100 * lar_prop_summary[2], 2), "%-", round(100 * lar_prop_summary[5], 2), "%"), paste0(round(lar_len_summary[4], 2), ", ", lar_len_summary[2], "-", lar_len_summary[5]), paste0(round(acc_score_comp_summary[4], 3), ", ", round(acc_score_comp_summary[2], 3), "-", round(acc_score_comp_summary[5], 3)))), file = paste(OUT_PREF, "coverage_and_accuracy_analysis_summary.tsv", sep = "_"), sep = "\t", row.names = F, col.names = F, quote = F)
+write.table(data.table(parameter = c("% of covered bases per transcript (mean, IQR)", "N, % fully covered transcripts", "N, % fully uncovered transcripts", "Mean coverage per transcript (mean, IQR)", generate_cov_break_labels, "Maximum uncovered region length per transcript (bp) (mean, IQR)", "Mean end coverage per transcript (mean, IQR)", "N, % assembly bases in LCR", "% of bases in LCR per transcript (mean, IQR)", "LCR length (bp) (mean, IQR)", "Coverage score component (mean, IQR)", paste0("% of accurate bases (bases with accuracy higher than or equal to ", BASE_ACC_THR, ") per transcript (mean, IQR)"), generate_acc_break_labels, "N, % assembly bases in LAR", "% of bases in LAR per transcript (mean, IQR)", "LAR length (bp) (mean, IQR)", "Accuracy score component  (mean, IQR)"), value = c(paste0(round(100 * cov_prop_summary[4], 2), "%, ", round(100 * cov_prop_summary[2], 2), "%-", round(100 * cov_prop_summary[5], 2), "%"), paste0(fully_cov_tr_N_sum, ", ", round(100 * fully_cov_tr_N_sum / tr_N, 2), "%"), paste0(fully_uncov_tr_N_sum, ", ", round(100 * fully_uncov_tr_N_sum / tr_N, 2), "%"), paste0(round(cov_mean_summary[4], 2), ", ", round(cov_mean_summary[2], 2), "-", round(cov_mean_summary[5], 2)), paste0(per_base_higher_cov_dt[, base_N], ", ", round(100 * per_base_higher_cov_dt[, base_prop], 2), "%"), paste0(round(ucr_len_max_summary[4], 2), ", ", ucr_len_max_summary[2], "-", ucr_len_max_summary[5]), paste0(round(end_cov_mean_summary[4], 2), ", ", round(end_cov_mean_summary[2], 2), "-", round(end_cov_mean_summary[5], 2)), paste0(lcr_len_sum, ", ", round(100 * lcr_len_sum / base_N_sum, 2), "%"), paste0(round(100 * lcr_prop_summary[4], 2), "%, ", round(100 * lcr_prop_summary[2], 2), "%-", round(100 * lcr_prop_summary[5], 2), "%"), paste0(round(lcr_len_summary[4], 2), ", ", lcr_len_summary[2], "-", lcr_len_summary[5]), paste0(round(cov_score_comp_summary[4], 3), ", ", round(cov_score_comp_summary[2], 3), "-", round(cov_score_comp_summary[5], 3)), paste0(round(100 * acc_base_prop_summary[4], 2), "%, ", round(100 * acc_base_prop_summary[2], 2), "%-", round(100 * acc_base_prop_summary[5], 2), "%"), paste0(per_base_higher_acc_dt[, base_N], ", ", round(100 * per_base_higher_acc_dt[, base_prop], 2), "%"), paste0(lar_len_sum, ", ", round(100 * lar_len_sum / cov_base_N_sum, 2), "%"), paste0(round(100 * lar_prop_summary[4], 2), "%, ", round(100 * lar_prop_summary[2], 2), "%-", round(100 * lar_prop_summary[5], 2), "%"), paste0(round(lar_len_summary[4], 2), ", ", lar_len_summary[2], "-", lar_len_summary[5]), paste0(round(acc_score_comp_summary[4], 3), ", ", round(acc_score_comp_summary[2], 3), "-", round(acc_score_comp_summary[5], 3)))), file = paste(OUT_PREF, "coverage_and_accuracy_analysis_summary.tsv", sep = "_"), sep = "\t", row.names = F, col.names = F, quote = F)
