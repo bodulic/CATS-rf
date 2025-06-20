@@ -462,7 +462,7 @@ Several steps of `CATS_rf_compare` are paralellized. This mainly includes operat
 ## `CATS_rf_compare` output explanation
 
 The analysis is summarized in the `CATS_rf_comparison.html` HTML file. 
-An example of the HTML output is provided [here](output_example.html).
+An example of the HTML output is provided [here](CATS_rf_compare_output_example.html).
 
 ### Summary tables
 
