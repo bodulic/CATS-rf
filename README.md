@@ -60,7 +60,7 @@ brew install coreutils findutils gnu-sed gawk grep
 
 - Add Bash and GNU utilities to your `PATH` (adjust path depending on your architecture):
 
-For Apple Sillicon:
+For Apple Silicon:
 ```bash
 export PATH="/opt/homebrew/bin:$PATH"
 export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
@@ -139,9 +139,9 @@ Single-end mode requires three options to be specified: `C` for library configur
 
 CATS-rf offers a comprehensive list of options which allow users to control the analysis parameters.
 
-## Library tyoe options
+## Library type options
 
-`-C`: Paired- vs. signle-end library configuratiom: pe = paired-end, se = single-end, default: pe
+`-C`: Paired- vs. single-end library configuration: pe = paired-end, se = single-end, default: pe
 
 `-S`: Library strandness, fr = forward-reverse, rf = reverse-forward, u = unstranded, a = automatic detection, default: u
 
@@ -159,9 +159,9 @@ Random seed is defined to ensure reproducible CATS-rf runs.
 
 `-N`: Maximum number of distinct mappings per read, default: 10
 
-Value of `N` should be increased for complex transcriptome assemblies that contain a large number of isoforms, and decreased for simpler assemblies with fewer isoforms to maximize performance and accuracy. Note that Bowtie2 mapping parameters are optimized to detect transcript errors, while minimizing the number of false-positive mappings. Furthermore, secondary mappings of each read are filtered based on edit distance.
+The value of `N` should be increased for complex transcriptome assemblies that contain a large number of isoforms, and decreased for simpler assemblies with fewer isoforms to maximize performance and accuracy. Note that Bowtie2 mapping parameters are optimized to detect transcript errors, while minimizing the number of false-positive mappings. Furthermore, secondary mappings of each read are filtered based on edit distance.
 
-`-m:`: Estimated mean of fragment length needed for transcript quantification (single-end mode only)
+`-m`: Estimated mean of fragment length needed for transcript quantification (single-end mode only)
 
 `-s`: Estimated standard deviation of fragment length needed for transcript quantification (single-end mode only)
 
@@ -185,7 +185,7 @@ Mean transcript coverage is split into intervals defined by `r` (e.g. [0-5>, [5-
 
 `-l`: Proportion of transcript length for positional relative coverage distribution analysis, default: 0.01
 
-Transcripts are split into fractional segments of size `l` for positional relative coverage distribution analysis. Coverage is expressed relative to the base with the highest coverage within the same trasncript. Relative coverage for each segment is calculated as mean relative coverage within the segment. Positional analysis output contains assembly-level median relative coverage for each transcript segment.
+Transcripts are split into fractional segments of size `l` for positional relative coverage distribution analysis. Coverage is expressed relative to the base with the highest coverage within the same transcript. Relative coverage for each segment is calculated as mean relative coverage within the segment. Positional analysis output contains assembly-level median relative coverage for each transcript segment.
 
 `-n`: Proportion of transcript length for transcript end definition when calculating mean transcript end coverage, default: 0.02
 
@@ -309,7 +309,7 @@ Summary files represent the main output of CATS-rf. In paired-end mode, four sum
 
 `coverage_and_accuracy_analysis_summary.tsv` contains summarized results of coverage and accuracy analysis. The content of this file is printed when CATS-rf finishes running in single-end mode.
 
-`paired_end_read_analysis_summmary.tsv` contains summarized results of paired-end read analysis, including local fidelity and integrity analysis.
+`paired_end_read_analysis_summary.tsv` contains summarized results of paired-end read analysis, including local fidelity and integrity analysis.
 
 CATS-rf also produces several .tsv files containing detailed per-transcript metrics:
 
@@ -447,7 +447,7 @@ Extension (device) and DPI of each plotted figure are controlled with `x` and `d
 
 `-r`: Raincloud plot colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted Set1 palette from RColorBrewer package
 
-Raincloud plot densities are normalized for each transcriptome assembly. Boxplots within raincloud plots mark the distribution median, Q<sub>1</sub>, and Q<sub>3</sub>, with whiskers exnteding from -1.5*IQR to 1.5*IQR of the distribution.
+Raincloud plot densities are normalized for each transcriptome assembly. Boxplots within raincloud plots mark the distribution median, Q<sub>1</sub>, and Q<sub>3</sub>, with whiskers extending from Q<sub>1</sub> - 1.5 * IQR to Q<sub>3</sub> + 1.5 * IQR of the distribution.
 
 All color sets (`r`, `l`, `H`, and `b`) should be supplied as R color names or hexadecimal codes separated with commas and enclosed in quotes (e.g. "#FDAF4A,#DC151D"). R color cheatsheet is available [here](https://sites.stat.columbia.edu/tzheng/files/Rcolor.pdf).
 
@@ -502,7 +502,7 @@ An example of the HTML output is provided [here](CATS_rf_compare_output_example.
 
 `mean_transcript_coverage` visualizes the distribution of mean transcript coverage.
 
-`positional_relative_coverage_median` and `positional_accuracy_median` visuaiize the positional relative coverage/accuracy distribution.
+`positional_relative_coverage_median` and `positional_accuracy_median` visualize the positional relative coverage/accuracy distribution.
 
 `maximum_uncovered_region_length` visualizes the distribution of maximum uncovered region length per transcript.
 
