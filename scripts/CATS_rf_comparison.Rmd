@@ -96,7 +96,7 @@ analyse_numerical_variable <- function(dt_to_analyse_filename, variable_to_plot,
   dt_to_analyse[, "transcriptome" := factor(transcriptome, levels = rev(transcriptome_names))]
    
   variable_rp <- ggplot(data = dt_to_analyse, aes(x = transcriptome, y = .data[[variable_to_plot]], fill = transcriptome)) +
-   stat_halfeye(normalize = "groups", justification = -0.1, width = 0.9, .width = 0, point_colour = NA, alpha = 0.8) +
+   stat_halfeye(normalize = "groups", width = 0.9, justification = -0.1, .width = 0, point_colour = NA, alpha = 0.8) +
    geom_boxplot(width = 0.1, outlier.shape = NA, alpha = 0.8) +
    theme_bw() +
    scale_fill_manual(values = RP_COLORS) +
@@ -247,7 +247,7 @@ colnames(general_trans_stats) <- c("Parameter", transcriptome_names)
 #Writing full general transcriptome assembly statistics to file
 write.table(general_trans_stats, file = "CATS_rf_general_statistics.tsv", sep = "\t", row.names = F, col.names = T, quote = F)
 
-#Displaying general transcriptome assembly statistics kable
+#Displaying the general transcriptome assembly statistics kable
 display_kable(general_trans_stats)
 rm(general_trans_stats)
 ```
@@ -265,14 +265,14 @@ colnames(assembly_scores) <- c("Parameter", transcriptome_names)
 #Writing full transcript score component statistics and assembly scores to file
 write.table(assembly_scores, file = "CATS_rf_assembly_scores.tsv", sep = "\t", row.names = F, col.names = T, quote = F)
 
-#Displaying transcript score component statistics and assembly scores kable
+#Displaying the transcript score component statistics and assembly scores kable
 display_kable(assembly_scores)
 rm(assembly_scores)
 ```
 IQR = interquartile range
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
-#Displaying transcript score raincloud plot
+#Displaying the transcript score raincloud plot
 analyse_numerical_variable("transcript_scores.tsv", "transcript_score", "raincloud", "Transcript score")
 knitr::include_graphics(paste("transcript_score", FIGURE_EXT, sep = "."))
 ```
@@ -292,23 +292,23 @@ colnames(coverage_accuracy_statistics) <- c("Parameter", transcriptome_names)
 #Writing full coverage and accuracy statistics to file
 write.table(coverage_accuracy_statistics, file = "CATS_rf_coverage_accuracy_statistics.tsv", sep = "\t", row.names = F, col.names = T, quote = F)
 
-#Displaying coverage and accuracy statistics kable
+#Displaying the coverage and accuracy statistics kable
 display_kable(coverage_accuracy_statistics)
 rm(coverage_accuracy_statistics)
 ```
 IQR = interquartile range, LCR = low-coverage region, LAR = low-accuracy region
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying per-base coverage barplot
-analyse_categorical_variable("per_base_coverage_distribution.tsv", "coverage_category", "Base coverage")
-knitr::include_graphics(paste("base_coverage", FIGURE_EXT, sep = "."))
+#Displaying the per-base coverage barplot
+analyse_categorical_variable("per_base_coverage_distribution.tsv", "coverage_category", "Per-base coverage")
+knitr::include_graphics(paste("per-base_coverage", FIGURE_EXT, sep = "."))
 ```
 **Figure 2.** Per-base coverage category distribution.
 <br>
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying proportion of covered bases per transcript barplot
+#Displaying the proportion of covered bases per transcript barplot
 analyse_categorical_variable("coverage_stats.tsv", "covered_base_prop_category", "Proportion of covered bases")
 knitr::include_graphics(paste("proportion_of_covered_bases", FIGURE_EXT, sep = "."))
 ```
@@ -317,7 +317,7 @@ knitr::include_graphics(paste("proportion_of_covered_bases", FIGURE_EXT, sep = "
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying mean transcript coverage barplot
+#Displaying the mean transcript coverage barplot
 analyse_categorical_variable("coverage_stats.tsv", "coverage_mean_category", "Mean transcript coverage")
 knitr::include_graphics(paste("mean_transcript_coverage", FIGURE_EXT, sep = "."))
 ```
@@ -326,7 +326,7 @@ knitr::include_graphics(paste("mean_transcript_coverage", FIGURE_EXT, sep = ".")
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`LP_HEIGHT`, fig.width=`LP_WIDTH`}
-#Displaying positional relative coverage lineplot
+#Displaying the positional relative coverage lineplot
 analyse_numerical_variable("relative_coverage_median_by_transcript_position.tsv", "relative_coverage_median", "lineplot", "Positional relative coverage median")
 knitr::include_graphics(paste("positional_relative_coverage_median", FIGURE_EXT, sep = "."))
 ```
@@ -335,7 +335,7 @@ knitr::include_graphics(paste("positional_relative_coverage_median", FIGURE_EXT,
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`HI_HEIGHT`, fig.width=`HI_WIDTH`}
-#Displaying maximum uncovered region length per transcript histogram
+#Displaying the maximum uncovered region length per transcript histogram
 analyse_numerical_variable("coverage_stats.tsv", "uncov_region_length_max", "histogram", "Maximum uncovered region length")
 knitr::include_graphics(paste("maximum_uncovered_region_length", FIGURE_EXT, sep = "."))
 ```
@@ -344,7 +344,7 @@ knitr::include_graphics(paste("maximum_uncovered_region_length", FIGURE_EXT, sep
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`HI_HEIGHT`, fig.width=`HI_WIDTH`}
-#Displaying mean transcript end coverage per transcript histogram
+#Displaying the mean transcript end coverage per transcript histogram
 analyse_numerical_variable("coverage_stats.tsv", "transcript_end_coverage_mean", "histogram", "Mean transcript end coverage")
 knitr::include_graphics(paste("mean_transcript_end_coverage", FIGURE_EXT, sep = "."))
 ```
@@ -353,7 +353,7 @@ knitr::include_graphics(paste("mean_transcript_end_coverage", FIGURE_EXT, sep = 
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying proportion of bases in low-coverage regions per transcript barplot
+#Displaying the proportion of bases in low-coverage regions per transcript barplot
 analyse_categorical_variable("coverage_stats.tsv", "lcr_base_prop_category", "Proportion of bases in LCRs")
 knitr::include_graphics(paste("proportion_of_bases_in_lcrs", FIGURE_EXT, sep = "."))
 ```
@@ -362,7 +362,7 @@ knitr::include_graphics(paste("proportion_of_bases_in_lcrs", FIGURE_EXT, sep = "
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`HI_HEIGHT`, fig.width=`HI_WIDTH`}
-#Displaying low-coverage region length histogram
+#Displaying the low-coverage region length histogram
 analyse_numerical_variable("lcr_list.tsv", "lcr_length", "histogram", "LCR length")
 knitr::include_graphics(paste("lcr_length", FIGURE_EXT, sep = "."))
 ```
@@ -371,7 +371,7 @@ knitr::include_graphics(paste("lcr_length", FIGURE_EXT, sep = "."))
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
-#Displaying coverage score component raincloud plot
+#Displaying the coverage score component raincloud plot
 analyse_numerical_variable("coverage_stats.tsv", "coverage_score_component", "raincloud", "Coverage score component")
 knitr::include_graphics(paste("coverage_score_component", FIGURE_EXT, sep = "."))
 ```
@@ -380,16 +380,16 @@ knitr::include_graphics(paste("coverage_score_component", FIGURE_EXT, sep = ".")
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying per-base accuracy barplot
-analyse_categorical_variable("per_base_accuracy_distribution.tsv", "accuracy_category", "Base accuracy")
-knitr::include_graphics(paste("base_accuracy", FIGURE_EXT, sep = "."))
+#Displaying the per-base accuracy barplot
+analyse_categorical_variable("per_base_accuracy_distribution.tsv", "accuracy_category", "Per-base accuracy")
+knitr::include_graphics(paste("per-base_accuracy", FIGURE_EXT, sep = "."))
 ```
 **Figure 11.** Per-base accuracy category distribution.
 <br>
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying proportion of accurate bases per transcript barplot
+#Displaying the proportion of accurate bases per transcript barplot
 analyse_categorical_variable("accuracy_stats.tsv", "acc_base_prop_category", "Proportion of accurate bases")
 knitr::include_graphics(paste("proportion_of_accurate_bases", FIGURE_EXT, sep = "."))
 ```
@@ -398,7 +398,7 @@ knitr::include_graphics(paste("proportion_of_accurate_bases", FIGURE_EXT, sep = 
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`LP_HEIGHT`, fig.width=`LP_WIDTH`}
-#Displaying positional accuracy lineplot
+#Displaying the positional accuracy lineplot
 analyse_numerical_variable("accuracy_median_by_transcript_position.tsv", "accuracy_median", "lineplot", "Positional accuracy median")
 knitr::include_graphics(paste("positional_accuracy_median", FIGURE_EXT, sep = "."))
 ```
@@ -407,7 +407,7 @@ knitr::include_graphics(paste("positional_accuracy_median", FIGURE_EXT, sep = ".
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying proportion of bases in low-accuracy regions per transcript barplot
+#Displaying the proportion of bases in low-accuracy regions per transcript barplot
 analyse_categorical_variable("accuracy_stats.tsv", "lar_base_prop_category", "Proportion of bases in LARs")
 knitr::include_graphics(paste("proportion_of_bases_in_lars", FIGURE_EXT, sep = "."))
 ```
@@ -416,7 +416,7 @@ knitr::include_graphics(paste("proportion_of_bases_in_lars", FIGURE_EXT, sep = "
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`HI_HEIGHT`, fig.width=`HI_WIDTH`}
-#Displaying low-accuracy region length histogram
+#Displaying the low-accuracy region length histogram
 analyse_numerical_variable("lar_list.tsv", "lar_length", "histogram", "LAR length")
 knitr::include_graphics(paste("lar_length", FIGURE_EXT, sep = "."))
 ```
@@ -425,7 +425,7 @@ knitr::include_graphics(paste("lar_length", FIGURE_EXT, sep = "."))
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
-#Displaying accuracy score component raincloud plot
+#Displaying the accuracy score component raincloud plot
 analyse_numerical_variable("accuracy_stats.tsv", "accuracy_score_component", "raincloud", "Accuracy score component")
 knitr::include_graphics(paste("accuracy_score_component", FIGURE_EXT, sep = "."))
 ```
@@ -445,14 +445,14 @@ colnames(fidelity_integrity_statistics) <- c("Parameter", transcriptome_names)
 #Writing full local fidelity and integrity statistics to file
 write.table(fidelity_integrity_statistics, file = "CATS_rf_local_fidelity_integrity_statistics.tsv", sep = "\t", row.names = F, col.names = T, quote = F)
 
-#Displaying local fidelity and integrity statistics kable
+#Displaying the local fidelity and integrity statistics kable
 display_kable(fidelity_integrity_statistics)
 rm(fidelity_integrity_statistics)
 ```
 IQR = interquartile range
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying per-transcript proportion of improperly paired reads within a transcript barplot
+#Displaying the per-transcript proportion of improperly paired reads within a transcript barplot
 analyse_categorical_variable("local_fidelity_stats.tsv", "improp_pair_within_tr_read_prop_category", "Proportion of improperly paired reads")
 knitr::include_graphics(paste("proportion_of_improperly_paired_reads", FIGURE_EXT, sep = "."))
 ```
@@ -461,7 +461,7 @@ knitr::include_graphics(paste("proportion_of_improperly_paired_reads", FIGURE_EX
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
-#Displaying local fidelity score component raincloud plot
+#Displaying the local fidelity score component raincloud plot
 analyse_numerical_variable("local_fidelity_stats.tsv", "local_fidelity_score_component", "raincloud", "Local fidelity score component")
 knitr::include_graphics(paste("local_fidelity_score_component", FIGURE_EXT, sep = "."))
 ```
@@ -470,7 +470,7 @@ knitr::include_graphics(paste("local_fidelity_score_component", FIGURE_EXT, sep 
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=5, fig.width=`BP_WIDTH`}
-#Displaying per-transcript proportion of reads with pair mapped to another transcript barplot
+#Displaying the per-transcript proportion of reads with pair mapped to another transcript barplot
 analyse_categorical_variable("integrity_stats.tsv", "pair_mapped_to_other_tr_prop_category", "Prop reads with pair mapped to another tr")
 knitr::include_graphics(paste("prop_reads_with_pair_mapped_to_another_tr", FIGURE_EXT, sep = "."))
 ```
@@ -479,7 +479,7 @@ knitr::include_graphics(paste("prop_reads_with_pair_mapped_to_another_tr", FIGUR
 <br>
 
 ```{r echo=F, message=F, warning=F, fig.align='center', fig.height=`RP_HEIGHT`, fig.width=`RP_WIDTH`}
-#Displaying integrity score component raincloud plot
+#Displaying the integrity score component raincloud plot
 analyse_numerical_variable("integrity_stats.tsv", "integrity_score_component", "raincloud", "Integrity score component")
 knitr::include_graphics(paste("integrity_score_component", FIGURE_EXT, sep = "."))
 ```
