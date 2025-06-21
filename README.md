@@ -2,6 +2,18 @@
 
 <img src="cats_rf_logo.png" alt="Logo" width="750" height="160"/>
 
+## Table of Contents
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Test data](#test-data)
+- [Example usage](#example-usage)
+- [Detailed options](#detailed-options)
+- [Output explanation](#output-explanation)
+- [Assembly comparison with `CATS_rf_compare`](#assembly-comparison-with-cats_rf_compare)
+- [Citation](#citation)
+- [Troubleshooting](#troubleshooting)
+- [Changelog](#changelog)
+
 # Introduction 
 
 CATS-rf is the reference-free module of the CATS (Comprehensive Assessment of Transcript Sequences) framework. It evaluates the quality of transcriptomes assembled from short reads without using reference data, relying solely on RNA-seq reads used in the assembly construction. The pipeline maps reads back to the assembled transcripts and examines mapping evidence suggesting misassembly. Quality evaluation is performed at the transcript level, integrating four score components each targeting specific assembly errors:
