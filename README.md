@@ -3,6 +3,7 @@
 <img src="cats_rf_logo.png" alt="Logo" width="750" height="160"/>
 
 # Table of Contents
+
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Test data](#test-data)
