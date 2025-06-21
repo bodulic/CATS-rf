@@ -45,7 +45,7 @@ brew install bash
 brew install coreutils findutils gnu-sed gawk grep
 ```
 
-- Add Bash and GNU tools to your `PATH` (adjust path depending on your architecture):
+- Add Bash and GNU utilities to your `PATH` (adjust path depending on your architecture):
 
 For Apple Sillicon:
 ```bash
@@ -65,7 +65,7 @@ export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"
 export PATH="/usr/local/opt/grep/libexec/gnubin:$PATH"
 ```
 
-- Run the script using the installed Bash version:
+- Run CATS-rf using the installed Bash version:
   
 ```bash
 bash CATS_rf
@@ -96,11 +96,11 @@ The following dependencies are required:
 | bedtools (bamToBed) | 2.31.1             | https://github.com/arq5x/bedtools2             | `conda install -c bioconda bedtools`      |
 | pysamstats          | 1.1.2              | https://github.com/alimanfoo/pysamstats        | `conda install -c bioconda pysamstats`    |
 
-R, Bowtie2, Samtools, kallisto, GNU Parallel, bedtools (bamToBed), and pysamstats executables must be included in `PATH`. R package `data.table` can be installed via conda or directly in R with `install.packages("data.table")`
+R, Bowtie2, Samtools, kallisto, GNU Parallel, bedtools (bamToBed), and pysamstats executables must be included in `PATH`. R package data.table can be installed via conda or directly in R with `install.packages("data.table")`
 
 # Test data
 
-CATS-rf installation can be tested using instructions and files stored in `test_data` directory.
+CATS-rf installation can be tested using instructions and files located in `test_data` directory.
 
 # Example usage 
 
@@ -133,6 +133,7 @@ CATS-rf offers a comprehensive list of options which allow users to control the 
 `-S`: Library strandness, fr = forward-reverse, rf = reverse-forward, u = unstranded, a = automatic detection, default: u
 
 CATS-rf can leverage strandness information when quantifying transcripts and calculating local fidelity score component. When the automatic detection option is enabled, strandness is estimated using the first 100 000 read mappings.
+
 While CATS-rf was primarily tested on Illumina data, the analysis can be run on assemblies generated from other short-read platforms. In such scenario, `S` should be adjusted accordingly. If strandness of the data is unknown, it is recommended to use either unstranded mode or automatic detection. Note that in unstranded mode, read pairs are expected to map to opposite strands. This is consistent with the behavior of virtually every short-read sequencing technology.
 
 `-Q`: Phred quality encoding of FASTQ files, 33 = phred33, 64 = phred64, default: 33
@@ -145,7 +146,7 @@ Random seed is defined to ensure reproducible CATS-rf runs.
 
 `-N`: Maximum number of distinct mappings per read, default: 10
 
-Values of `N` should be increased for complex transcriptome assemblies that contain a large number of isoforms, and decreased for simpler assemblies with fewer isoforms to maximize performance and accuracy. Note that Bowtie2 mapping parameters are optimized to detect transcript errors, while minimizing the number of false-positive mappings. Furthermore, secondary mappings of each read are filtered based on edit distance.
+Value of `N` should be increased for complex transcriptome assemblies that contain a large number of isoforms, and decreased for simpler assemblies with fewer isoforms to maximize performance and accuracy. Note that Bowtie2 mapping parameters are optimized to detect transcript errors, while minimizing the number of false-positive mappings. Furthermore, secondary mappings of each read are filtered based on edit distance.
 
 `-m:`: Estimated mean of fragment length needed for transcript quantification (single-end mode only)
 
@@ -261,7 +262,7 @@ Bridge index measures the proportion of reads with pair mapped to a different tr
 
 `-t`: Number of CPU threads, default: 10
 
-Several steps of CATS-rf pipeline support parallel processing. This includes read mapping, transcript quantification, read assignment, SAM/BAM file processing, positional coverage and accuracy calculation and analysis, as well as positional paired-end analysis. Recommended number of threads: 10-20.
+Several steps of CATS-rf pipeline are parallelized. This includes read mapping, transcript quantification, read assignment, SAM/BAM file processing, positional coverage and accuracy calculation and analysis, as well as positional paired-end analysis. Recommended number of threads: 10-20.
 
 `-G`: Percentage of available RAM used by GNU sort, default: 50
 
@@ -427,13 +428,13 @@ CATS_rf_compare [OPTIONS] CATS_RF_DIR ...
 
 `-x`: Figure extension, default: png
 
-`-d`: Figure DPI, default: 300
+`-d`: Figure DPI, default: 600
 
 Extension (device) and DPI of each plotted figure are controlled with `x` and `d`, respectively.
 
 `-r`: Raincloud plot colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted Set1 palette from RColorBrewer package
 
-Raincloud plot densities are scaled for each transcriptome assembly. 
+Raincloud plot densities are normalized for each transcriptome assembly. Boxplots within raincloud plots mark the distribution median, Q<sub>1</sub>, and Q<sub>3</sub>, with whiskers exnteding from -1.5*IQR to 1.5*IQR of the distribution.
 
 All color sets (`r`, `l`, `H`, and `b`) should be supplied as R color names or hexadecimal codes separated with commas and enclosed in quotes (e.g. "#FDAF4A,#DC151D"). R color cheatsheet is available [here](https://sites.stat.columbia.edu/tzheng/files/Rcolor.pdf).
 
@@ -445,13 +446,13 @@ All color sets (`r`, `l`, `H`, and `b`) should be supplied as R color names or h
 
 `-q`: Maximum right-tail distribution quantile for histograms, default: 0.98"
 
-Histograms show relative density per transcriptome assembly and omit right-tail extreme values for visualization purposes. X-axis in all histograms is square-root scaled.
+Histograms show relative density per transcriptome assembly and omit right-tail extreme values for visualization purposes. The x-axis in all histograms is square-root scaled.
 
 ### General options
 
 `-t`: Number of CPU threads, default: 10
 
-Several steps of `CATS_rf_compare` are paralellized. This mainly includes operations performed by the data.table package. Recommended number of threads: 8-12.
+Several steps of `CATS_rf_compare` are parallelized. This mainly includes operations performed by the data.table package. Recommended number of threads: 8-12.
 
 `-D`: Comparison output directory name, default: CATS_rf_comparison
 
@@ -477,6 +478,8 @@ An example of the HTML output is provided [here](CATS_rf_compare_output_example.
 `CATS_rf_local_fidelity_integrity_statistics.tsv` contains aggregated CATS-rf paired-end read analysis table.
 
 ### Figures
+
+`CATS_rf_compare` produces several figures, providing a detailed visualization of CATS-rf quality metrics. 
 
 `transcript_score` visualizes the distribution of transcript scores.
 
