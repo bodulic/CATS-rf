@@ -45,7 +45,7 @@ import_data <- function(import_regex, select_cols = NA) {
    imported_dt[[i]][, "full_name" := files_in_directory[i]]
   }
   imported_dt <- rbindlist(imported_dt) 
- } else if (import_regex %chin% c("general_statistics_table.tsv", "assembly_score_summary.tsv", "coverage_and_accuracy_analysis_summary.tsv", "paired_end_analysis_summmary.tsv")) {
+ } else if (import_regex %chin% c("general_statistics_table.tsv", "assembly_score_summary.tsv", "coverage_and_accuracy_analysis_summary.tsv", "paired_end_read_analysis_summary.tsv")) {
   for (i in 1 : length(files_in_directory)) {
    if (i == 1) {
     imported_dt <- fread(files_in_directory[i], sep = "\t", header = F)
@@ -63,10 +63,10 @@ process_filenames <- function(dt_to_process, file_regex) {
  dt_to_process[, "full_name" := sub(file_regex, "", full_name, fixed = T)]
  dt_to_process[, "transcriptome" := sub(".*%", "", full_name)]
  dt_to_process[nchar(transcriptome) > 20, "transcriptome" := substr(transcriptome, 1, 20)]
- dt_to_process[, "occurance_N" := rleid(full_name), by = "transcriptome"]
+ dt_to_process[, "occurrence_N" := rleid(full_name), by = "transcriptome"]
  dt_to_process[, "full_name" := NULL]
- dt_to_process[occurance_N != 1, "transcriptome" := paste(transcriptome, occurance_N, sep = ".")]
- dt_to_process[, "occurance_N" := NULL]
+ dt_to_process[occurrence_N != 1, "transcriptome" := paste(transcriptome, occurrence_N, sep = ".")]
+ dt_to_process[, "occurrence_N" := NULL]
  return(dt_to_process)
 }
 
@@ -439,7 +439,7 @@ knitr::include_graphics(paste("accuracy_score_component", FIGURE_EXT, sep = ".")
 
 ```{r echo=F, message=F, warning=F, fig.align='center', results="asis"}
 #Importing local fidelity and integrity statistics from files
-fidelity_integrity_statistics <- import_data("paired_end_analysis_summmary.tsv")
+fidelity_integrity_statistics <- import_data("paired_end_read_analysis_summary.tsv")
 colnames(fidelity_integrity_statistics) <- c("Parameter", transcriptome_names)
 
 #Writing full local fidelity and integrity statistics to file

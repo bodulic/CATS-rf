@@ -4,7 +4,7 @@ usage () {
  echo "CATS-rf version 1.0.0 - reference-free transcriptome assembly assessment" >&2
  echo "USAGE ${0} [OPTIONS] TRANSCRIPTOME READS1 [READS2]" >&2
  echo "Library type options:" >&2
- echo "-C: Paired- vs. signle-end library configuratiom: pe = paired-end, se = single-end, default: pe" >&2
+ echo "-C: Paired- vs. single-end library configuration: pe = paired-end, se = single-end, default: pe" >&2
  echo "-S: Library strandness, fr = forward-reverse, rf = reverse-forward, u = unstranded, a = automatic detection, default: u" >&2
  echo "-Q: Phred quality encoding of FASTQ files, 33 = phred33, 64 = phred64, default: 33" >&2
  echo "Read mapping, transcript quantification, and read assignment options:" >&2
@@ -54,7 +54,7 @@ usage () {
  exit 1
 }
 
-#Addingg date and time to log messages (function)
+#Adding date and time to log messages (function)
 write_log () {
  local LOG_TYPE="${1}"
  shift 1
@@ -628,7 +628,7 @@ check_exit_status "Read assignment failed"
 rm "${OUT_PREF}_abundance_tpm.tsv" "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 
 #Filtering multimapped reads based on read assignment
-write_log INFO "Filtering multimapped reads based on read assignemnt"
+write_log INFO "Filtering multimapped reads based on read assignment"
 sort -n -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 check_sorted_files "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" 1
 samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | awk 'NR == FNR {data[$1]; next} FNR in data' "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" -  | awk -F "\t" '!seen[$1, $3]++' > "${OUT_PREF}_sampled_mappings.sam" && rm "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
@@ -718,7 +718,7 @@ then
  check_exit_status "Paired-end read analysis failed"
  rm "${TRANSCRIPTOME}_lengths.tsv" x[0-9][0-9]
 
-#Generating transcriptome assembly socres
+#Generating transcriptome assembly scores
  write_log INFO "Generating transcriptome assembly scores"
  CATS_rf_generate_assembly_score.R "${THREAD_N}" "${OUT_PREF}_coverage_stats.tsv" "${OUT_PREF}"
  check_exit_status "Generating transcriptome assembly scores failed"

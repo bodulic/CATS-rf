@@ -5,7 +5,7 @@ usage () {
  echo "USAGE ${0} [OPTIONS] CATS_RF_DIR ..." >&2
  echo "Graphical options:" >&2
  echo "-x: Figure extension, default: png" >&2
- echo "-d: Figure DPI, default: 300" >&2
+ echo "-d: Figure DPI, default: 600" >&2
  echo "-r: Raincloud plot colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted Set1 palette from RColorBrewer package" >&2
  echo "-l: Lineplot colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted Set1 palette from RColorBrewer package" >&2
  echo "-H: Histogram colors (quoted hexadecimal codes or R color names, specified with x,y,z...), default: adjusted Set1 palette from RColorBrewer package" >&2
@@ -19,7 +19,7 @@ usage () {
  exit 1
 }
 
-#Addingg date and time to log messages (function)
+#Adding date and time to log messages (function)
 write_log () {
  local LOG_TYPE="${1}"
  shift 1
@@ -85,7 +85,7 @@ test_numeric_arg () {
 
 #Defining default parameters
 FIGURE_EXT="png"
-FIGURE_DPI=300
+FIGURE_DPI=600
 RP_COLORS="#E41A1C,#377EB8,#4DAF4A,#984EA3,#FF7F00,#A65628,#F781BF,#999999"
 LP_COLORS="#E41A1C,#377EB8,#4DAF4A,#984EA3,#FF7F00,#A65628,#F781BF,#999999"
 HI_COLORS="#E41A1C,#377EB8,#4DAF4A,#984EA3,#FF7F00,#A65628,#F781BF,#999999"
@@ -136,7 +136,7 @@ then
  usage
 fi
 
-#Save log output to file and STDERR
+#Saving log output to file and STDERR
 LOG_FILE="CATS_rf_compare_run_$(date '+%Y%m%d_%H%M%S')"
 exec 3>&2
 exec 2> >(tee "$LOG_FILE" >&3)
@@ -164,8 +164,8 @@ then
 fi
 
 #Testing numerical arguments
-test_numeric_arg "${FIGURE_DPI}" "FIGURE_DPI" 300 "Supplied an incorrect value for figure DPI, defaulting to 300"
-test_numeric_arg "${HI_MAX_QUANTILE}" "HI_MAX_QUANTILE" 0.995 "Supplied an incorrect value for the maximum right-tail distribution quantile for histograms, defaulting to 0.995"
+test_numeric_arg "${FIGURE_DPI}" "FIGURE_DPI" 600 "Supplied an incorrect value for figure DPI, defaulting to 600"
+test_numeric_arg "${HI_MAX_QUANTILE}" "HI_MAX_QUANTILE" 0.98 "Supplied an incorrect value for the maximum right-tail distribution quantile for histograms, defaulting to 0.98"
 test_numeric_arg "${THREAD_N}" "THREAD_N" 10 "Supplied an incorrect value for the number of CPU threads, defaulting to 10"
 
 #Creating the output directory
@@ -178,7 +178,7 @@ echo "${CALL}" > call.log
 
 #Preparing CATS-rf files for comparison
 write_log INFO "Preparing CATS-rf files for comparison"
-FILE_PATTERNS=("general_statistics_table.tsv" "coverage_stats.tsv" "per_base_coverage_distribution.tsv" "relative_coverage_median_by_transcript_position.tsv" "lcr_list.tsv" "accuracy_stats.tsv" "per_base_accuracy_distribution.tsv" "accuracy_median_by_transcript_position.tsv" "lar_list.tsv" "coverage_and_accuracy_analysis_summary.tsv" "local_fidelity_stats.tsv" "integrity_stats.tsv" "paired_end_analysis_summmary.tsv" "transcript_scores.tsv" "assembly_score_summary.tsv")
+FILE_PATTERNS=("general_statistics_table.tsv" "coverage_stats.tsv" "per_base_coverage_distribution.tsv" "relative_coverage_median_by_transcript_position.tsv" "lcr_list.tsv" "accuracy_stats.tsv" "per_base_accuracy_distribution.tsv" "accuracy_median_by_transcript_position.tsv" "lar_list.tsv" "coverage_and_accuracy_analysis_summary.tsv" "local_fidelity_stats.tsv" "integrity_stats.tsv" "paired_end_read_analysis_summary.tsv" "transcript_scores.tsv" "assembly_score_summary.tsv")
 COUNTER=1
 for DIRECTORY in "${@}"
 do
@@ -214,7 +214,7 @@ Rscript -e "rmarkdown::render(input='CATS_rf_comparison.Rmd',output_file='CATS_r
 check_exit_status "Transcriptome assembly comparison failed"
 
 #Cleaning up
-rm *"general_statistics_table.tsv" *"coverage_stats.tsv" *"per_base_coverage_distribution.tsv" *"relative_coverage_median_by_transcript_position.tsv" *"lcr_list.tsv" *"accuracy_stats.tsv" *"per_base_accuracy_distribution.tsv" *"accuracy_median_by_transcript_position.tsv" *"lar_list.tsv" *"coverage_and_accuracy_analysis_summary.tsv" *"local_fidelity_stats.tsv" *"integrity_stats.tsv" *"paired_end_analysis_summmary.tsv" *"transcript_scores.tsv" *"assembly_score_summary.tsv" ext_args CATS_rf_comparison.Rmd
+rm *"general_statistics_table.tsv" *"coverage_stats.tsv" *"per_base_coverage_distribution.tsv" *"relative_coverage_median_by_transcript_position.tsv" *"lcr_list.tsv" *"accuracy_stats.tsv" *"per_base_accuracy_distribution.tsv" *"accuracy_median_by_transcript_position.tsv" *"lar_list.tsv" *"coverage_and_accuracy_analysis_summary.tsv" *"local_fidelity_stats.tsv" *"integrity_stats.tsv" *"paired_end_read_analysis_summary.tsv" *"transcript_scores.tsv" *"assembly_score_summary.tsv" ext_args CATS_rf_comparison.Rmd
 
 #Exiting
 write_log INFO "Thank you for using CATS-rf! The CATS-rf transcriptome assembly comparison output can be found in ${OUT_DIR}"

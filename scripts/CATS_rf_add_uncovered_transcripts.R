@@ -7,7 +7,7 @@ suppressPackageStartupMessages(library(data.table))
 ext_args <- commandArgs(trailingOnly = T)
 THREAD_N <- as.numeric(ext_args[1])
 UNCOV_TR_LEN_DT_PATH <- ext_args[2]
-OUT_PREF=ext_args[3]
+OUT_PREF <- ext_args[3]
 
 #Importing uncovered transcript lengths from file
 setDTthreads(THREAD_N)

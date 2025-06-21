@@ -18,7 +18,7 @@ tr_lengths[, "tr_id" := .I]
 #Calculating descriptive statistics of transcript length
 tr_N <- tr_lengths[, .N]
 base_N_sum <- sum(tr_lengths[, tr_len])
-tr_len_sunnary <- summary(tr_lengths[, tr_len])
+tr_len_summary <- summary(tr_lengths[, tr_len])
 
 tr_longer_than_N <- c()
 len_thr <- c(200, 500, 1000, 5000, 10000, 20000)
@@ -43,4 +43,4 @@ N90 <- N_L_90[, tr_len]
 L90 <- N_L_90[, tr_id]
 
 #Writing general transcriptome assembly statistics to file
-write.table(data.table(parameter = c("N transcripts", "Total assembly length (bp)", tr_longer_than_label, "Mean transcript length (bp)", "Median trancript length (bp)", "Transcript length IQR (bp)", "Trancript length range (bp)", "N50 (bp)", "L50", "N90 (bp)", "L90"), value = c(tr_N, base_N_sum, paste0(tr_longer_than_N, ", ", round(100 * tr_longer_than_N / tr_N, 2), "%"), round(tr_len_sunnary[4], 2), tr_len_sunnary[3], paste(tr_len_sunnary[2], tr_len_sunnary[5], sep = "-"), paste(tr_len_sunnary[1], tr_len_sunnary[6], sep = "-"), N50, L50, N90, L90)), file = paste(OUT_PREF, "general_statistics_table.tsv", sep = "_"), sep = "\t", row.names = F, col.names = F, quote = F)
+write.table(data.table(parameter = c("N transcripts", "Total assembly length (bp)", tr_longer_than_label, "Mean transcript length (bp)", "Median transcript length (bp)", "Transcript length IQR (bp)", "Transcript length range (bp)", "N50 (bp)", "L50", "N90 (bp)", "L90"), value = c(tr_N, base_N_sum, paste0(tr_longer_than_N, ", ", round(100 * tr_longer_than_N / tr_N, 2), "%"), round(tr_len_summary[4], 2), tr_len_summary[3], paste(tr_len_summary[2], tr_len_summary[5], sep = "-"), paste(tr_len_summary[1], tr_len_summary[6], sep = "-"), N50, L50, N90, L90)), file = paste(OUT_PREF, "general_statistics_table.tsv", sep = "_"), sep = "\t", row.names = F, col.names = F, quote = F)

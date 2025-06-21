@@ -79,7 +79,7 @@ if (read_mappings[, .N] != 0) {
   read_mappings[same_tr_unsampled_pair == T, "same_tr_unsampled_pair" := fifelse(tpm.x == max(tpm.x), T, F), by = "frag_id"]
   
 #Determining pairs mapped to different transcripts, without common transcripts
-  sane_tr_unsampled_frag <- read_mappings[same_tr_unsampled_pair == "T", frag_id]
+  sane_tr_unsampled_frag <- read_mappings[same_tr_unsampled_pair == T, frag_id]
   read_mappings[frag_id %in% c(diff_tr_sampled_frag, sane_tr_sampled_frag, sane_tr_unsampled_frag)  == F, "wo_same_tr_sampled_pair" := T]
     
 #Writing row numbers (ids) of the sampled read-transcript combinations to STDOUT
