@@ -32,7 +32,6 @@ In addition to transcript scores, CATS-rf provides a comprehensive set of assemb
 
 CATS-rf consistently displays stronger performance than currently existing reference-free transcriptome assembly evaluation tools. For detailed benchmarks and methodology, please refer to the CATS [preprint](test)
 
-
 # Installation 
 
 ## Compatibility
@@ -44,7 +43,7 @@ For the best compatibility and performance, we recommend running CATS-rf on:
 - WSL (i.e. Ubuntu on Windows)
 
 ### MacOS
-If you are using MacOS, Bash (version >= 4.0) and GNU versions of core utilities are required. In this case, `PATH` variable should be adjusted so that CATS-rf uses GNU versions of core utilities:
+If you are using MacOS, Bash (version >= 4.0) and GNU versions of core utilities are required. In this case, the `PATH` environment variable should be adjusted so that CATS-rf uses GNU versions of core utilities:
 
 - Install Bash ≥ 4.0 via [Homebrew](https://formulae.brew.sh/formula/bash):
 
@@ -88,24 +87,21 @@ bash CATS_rf
 
 CATS-rf and its dependencies can be directly installed via [Bioconda](https://bioconda.github.io/):
 
-```bash
-conda install -c bioconda cats_rf
-```
+(coming soon)
 
 ## Installing CATS-rf from source
 
-CATS-rf consists of Bash and R scripts located in the `scripts` directory of this repository. After cloning the repository, all CATS-rf scripts must be included in the `PATH` environment variable. 
-
+CATS-rf consists of Bash and R scripts located in the `scripts` directory of this repository. After cloning the repository, all CATS-rf scripts must be included in `PATH`.
 The following dependencies are required:
 
 | **Dependency**      | **Tested Version** | **Homepage**                                   | **Conda Installation**                    |
 |---------------------|--------------------|------------------------------------------------|-------------------------------------------|
-| R                   | 4.4.2              | https://www.r-project.org/                     | `conda install conda-forge::r-base`       |
+| R                   | 4.4.2              | https://www.r-project.org                      | `conda install conda-forge::r-base`       |
 | data.table (R)      | 1.16.4             | https://cran.r-project.org/package=data.table  | `conda install conda-forge::r-data.table` |
 | Bowtie2             | 2.5.4              | https://github.com/BenLangmead/bowtie2         | `conda install -c bioconda bowtie2`       |
-| Samtools            | 1.21               | https://www.htslib.org/                        | `conda install -c bioconda samtools`      |
+| Samtools            | 1.21               | https://www.htslib.org                         | `conda install -c bioconda samtools`      |
 | kallisto            | 0.50.1             | https://github.com/pachterlab/kallisto         | `conda install -c bioconda kallisto`      |
-| GNU Parallel        | 20220922           | https://www.gnu.org/software/parallel/         | `conda install conda-forge::parallel`     |
+| GNU Parallel        | 20220922           | https://www.gnu.org/software/parallel          | `conda install conda-forge::parallel`     |
 | bedtools (bamToBed) | 2.31.1             | https://github.com/arq5x/bedtools2             | `conda install -c bioconda bedtools`      |
 | pysamstats          | 1.1.2              | https://github.com/alimanfoo/pysamstats        | `conda install -c bioconda pysamstats`    |
 
@@ -132,7 +128,6 @@ Example single-end mode usage:
 ```bash
 CATS_rf -C se -m MEAN_INS_SIZE -s SD_INS_SIZE [OTHER_OPTIONS] TRANSCRIPTOME READS1
 ```
-
 Single-end mode requires three options to be specified: `C` for library configuration, `m` for mean fragment size, and `s` for standard deviation of fragment size. Note that single-end runs will output only general assembly statistics, read mapping metrics, and positional coverage and accuracy analysis.
 
 # Detailed options
@@ -145,9 +140,9 @@ CATS-rf offers a comprehensive list of options which allow users to control the 
 
 `-S`: Library strandness, fr = forward-reverse, rf = reverse-forward, u = unstranded, a = automatic detection, default: u
 
-CATS-rf can leverage strandness information when quantifying transcripts and calculating local fidelity score component. When the automatic detection option is enabled, strandness is estimated using the first 100 000 read mappings.
+CATS-rf can leverage strandness information when quantifying transcripts and calculating the local fidelity score component. When the automatic detection option is enabled, strandness is estimated using the first 100 000 read mappings.
 
-While CATS-rf was primarily tested on Illumina data, the analysis can be run on assemblies generated from other short-read platforms. In such scenario, `S` should be adjusted accordingly. If strandness of the data is unknown, it is recommended to use either unstranded mode or automatic detection. Note that in unstranded mode, read pairs are expected to map to opposite strands. This is consistent with the behavior of virtually every short-read sequencing technology.
+While CATS-rf was primarily tested on Illumina data, the analysis can be run on assemblies generated from other short-read platforms. In such scenario, `S` should be adjusted accordingly. If the strandness of the data is unknown, it is recommended to use either unstranded mode or automatic detection. Note that in unstranded mode, read pairs are expected to map to opposite strands. This is consistent with the behavior of virtually every short-read sequencing technology.
 
 `-Q`: Phred quality encoding of FASTQ files, 33 = phred33, 64 = phred64, default: 33
 
@@ -188,8 +183,6 @@ Mean transcript coverage is split into intervals defined by `r` (e.g. [0-5>, [5-
 Transcripts are split into fractional segments of size `l` for positional relative coverage distribution analysis. Coverage is expressed relative to the base with the highest coverage within the same transcript. Relative coverage for each segment is calculated as mean relative coverage within the segment. Positional analysis output contains assembly-level median relative coverage for each transcript segment.
 
 `-n`: Proportion of transcript length for transcript end definition when calculating mean transcript end coverage, default: 0.02
-
-Relative size of transcript end regions when calculating mean transcript end coverage is controlled by `n`.
 
 `-k`: Rolling window size for local coverage calculation (in bp) when defining low-coverage regions (LCR), default: 10
 
@@ -413,11 +406,11 @@ CATS-rf also supports direct comparison of multiple analysed assemblies. The `CA
 
 | **Dependency**           | **Tested Version** | **Homepage**                                     | **Conda Installation**                    | **R installation**               |
 |--------------------------|--------------------|--------------------------------------------------|-------------------------------------------|----------------------------------|
-| R                        | 4.4.2              | https://www.r-project.org/                       | `conda install conda-forge::r-base`       | /                                |
-| knitr (R)                | 1.49               | https://cran.r-project.org/web/packages/knitr/   | `conda install conda-forge::r-knitr`      | `install.packages("knitr")`      |
+| R                        | 4.4.2              | https://www.r-project.org                        | `conda install conda-forge::r-base`       | /                                |
+| knitr (R)                | 1.49               | https://cran.r-project.org/web/packages/knitr    | `conda install conda-forge::r-knitr`      | `install.packages("knitr")`      |
 | data.table (R)           | 1.16.4             | https://cran.r-project.org/package=data.table    | `conda install conda-forge::r-data.table` | `install.packages("data.table")` |
-| ggplot2 (R)              | 3.5.1              | https://cran.r-project.org/web/packages/ggplot2/ | `conda install conda-forge::r-ggplot2`    | `install.packages("ggplot2")`    |
-| ggdist (R)               | 3.3.2              | https://cran.r-project.org/web/packages/ggdist/  | `conda install conda-forge::r-ggdist`     | `install.packages("ggdist")`     | 
+| ggplot2 (R)              | 3.5.1              | https://cran.r-project.org/web/packages/ggplot2  | `conda install conda-forge::r-ggplot2`    | `install.packages("ggplot2")`    |
+| ggdist (R)               | 3.3.2              | https://cran.r-project.org/web/packages/ggdist   | `conda install conda-forge::r-ggdist`     | `install.packages("ggdist")`     | 
 
 R (Rscript) executable must be included in `PATH`. Tools denoted with (R) correspond to R packages and can be installed via conda or directly in R with the supplied commands.
 
@@ -478,6 +471,8 @@ Several steps of `CATS_rf_compare` are parallelized. This mainly includes operat
 The analysis is summarized in the `CATS_rf_comparison.html` HTML file. 
 An example of the HTML output is provided [here](CATS_rf_compare_output_example.html).
 
+Note on transcriptome assembly order and names: Assemblies will appear in the order they were provided on the command line when running the tool. For visualization purposes, assembly names are limited to a maximum of 20 characters; names exceeding this limit will be truncated. If multiple assemblies share the same name, a numeric suffix (e.g., .1, .2, etc.) will be appended to distinguish these assemblies.
+
 ### Summary tables
 
 `CATS_rf_compare` aggregates individual summary tables into comprehensive joint tables encompassing all analyzed transcriptome assemblies:
@@ -534,7 +529,7 @@ Copyright © 2025 Kristian Bodulić
 
 if you use CATS, please cite the CATS preprint:
 
-(add reference)
+(coming soon)
 
 # Troubleshooting
 
@@ -542,4 +537,4 @@ Please report all potential bugs in the Issues tracker.
 
 # Changelog
 
-Version 1.0.0. Initial commit, June 3, 2025.
+Version 1.0.0. Initial commit, July 10, 2025.
