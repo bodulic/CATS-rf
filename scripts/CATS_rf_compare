@@ -198,7 +198,6 @@ do
   fi
  done
  cd ..
- rm "${DIRECTORY}"
  mv "${DIRECTORY}_tmpdir/"* .
  rm -r "${DIRECTORY}_tmpdir"
  ((COUNTER=COUNTER+1))

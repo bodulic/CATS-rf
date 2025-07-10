@@ -55,6 +55,7 @@ setDTthreads(THREAD_N)
 
 #Looping over split files
 for (i in 1 : length(files_in_directory)) {
+
 #Importing split pysamstats outputs from files
  per_base_cov_acc <- fread(files_in_directory[i], header = F)
  setnames(per_base_cov_acc, c("transcript", "position", "coverage", "matches", "insertions"))

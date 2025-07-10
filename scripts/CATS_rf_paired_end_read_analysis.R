@@ -57,6 +57,7 @@ files_in_directory <- grep("^x[0-9][0-9]$", list.files(path = "."), value = T)
 
 #Looping over split files
 for (i in 1 : length(files_in_directory)) {
+
 #Importing split read mapping tables from files
  read_mappings <- fread(files_in_directory[i], header = F)
  setnames(read_mappings, c("transcript", "tr_start", "tr_end", "tr_strand", "pair_N", "frag_id"))
