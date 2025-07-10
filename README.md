@@ -107,6 +107,8 @@ The following dependencies are required:
 
 R, Bowtie2, Samtools, kallisto, GNU Parallel, bedtools (bamToBed), and pysamstats executables must be included in `PATH`. R package data.table can be installed via conda or directly in R with `install.packages("data.table")`
 
+pysamstats vas tested with Python version 3.12.8, but is compatible with Python >= 3.6.
+
 # Test data
 
 CATS-rf installation can be tested using instructions and files located in `test_data` directory.
@@ -407,6 +409,8 @@ CATS-rf also supports direct comparison of multiple analysed assemblies. The `CA
 | **Dependency**           | **Tested Version** | **Homepage**                                     | **Conda Installation**                    | **R installation**               |
 |--------------------------|--------------------|--------------------------------------------------|-------------------------------------------|----------------------------------|
 | R                        | 4.4.2              | https://www.r-project.org                        | `conda install conda-forge::r-base`       | /                                |
+| pandoc                   | 2.19.2             | https://pandoc.org/                              | `conda install conda-forge::pandoc`       | /                                |
+| rmarkdown (R)            | 2.29               | https://cran.r-project.org/package=rmarkdown     | `conda install conda-forge::r-rmarkdown`  | `install.packages("rnarkdown)`   |
 | knitr (R)                | 1.49               | https://cran.r-project.org/web/packages/knitr    | `conda install conda-forge::r-knitr`      | `install.packages("knitr")`      |
 | data.table (R)           | 1.16.4             | https://cran.r-project.org/package=data.table    | `conda install conda-forge::r-data.table` | `install.packages("data.table")` |
 | ggplot2 (R)              | 3.5.1              | https://cran.r-project.org/web/packages/ggplot2  | `conda install conda-forge::r-ggplot2`    | `install.packages("ggplot2")`    |
