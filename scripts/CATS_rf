@@ -470,6 +470,7 @@ echo "${CALL}" > call.log
 
 #Cleaning up transcript headers and lowercasing N bases
 sed -r 's/^(>\S+)\s.*/\1/' "${TRANSCRIPTOME}" | sed -e '/^[^>]/s/N/n/g' > "${TRANSCRIPTOME}_onew_h"
+[[ -L "${TRANSCRIPTOME}" ]] && rm "${TRANSCRIPTOME}"
 
 #Calculating general transcriptome assembly statistics
 write_log INFO "Calculating general transcriptome assembly statistics"
@@ -494,6 +495,7 @@ then
  if [[ "${LIB_CONF}" = "pe" ]]
  then
   "${READ_FILE_COMMAND}" "${READS2}" | awk '{print (NR%4 == 1) ? "@2_" ++i : $0}' > "mod_${READS2}"
+  [[ -L "${READS2}" ]] && rm "${READS2}"
  fi
  EDIT_DIST_FACT=$(head -n 40000 "mod_${READS1}" | awk 'NR%4 == 2 {print length}' | awk '{ total += $1 } END { print 0.1 * total / NR}')
 elif [[ "$("${READ_FILE_COMMAND}" "${READS1}" | head -c 1)" = ">" ]]
@@ -502,6 +504,7 @@ then
  if [[ "${LIB_CONF}" = "pe" ]]
  then
   "${READ_FILE_COMMAND}" "${READS2}" | awk '{print (NR%2 == 1) ? ">2_" ++i : $0}'  > "mod_${READS2}"
+  [[ -L "${READS2}" ]] && rm "${READS2}"
  fi
  EDIT_DIST_FACT=$(head -n 20000 "mod_${READS1}" | awk 'NR%2 == 0 {print length}' | awk '{ total += $1 } END { print 0.1 * total / NR}')
  FASTA_ARG="-f"
@@ -509,7 +512,7 @@ else
  write_log ERROR "Please provide read files in a suitable format (fastq or fasta)"
  exit 1
 fi
-
+[[ -L "${READS1}" ]] && rm "${READS1}"
 
 #Building Bowtie2 index
 write_log INFO "Building Bowtie2 index"
