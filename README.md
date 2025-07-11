@@ -30,7 +30,7 @@ Transcript quality score S<sub><i>t</i></sub> is calculated as the product of th
 
 In addition to transcript scores, CATS-rf provides a comprehensive set of assembly metrics, including transcript length and composition statistics, read mapping rates, positional coverage and accuracy profiles, and pair mapping consistency metrics.
 
-CATS-rf consistently displays stronger performance than currently existing reference-free transcriptome assembly evaluation tools. For detailed benchmarks and methodology, please refer to the CATS [preprint](test)
+CATS-rf consistently displays stronger performance than currently existing reference-free transcriptome assembly evaluation tools. For detailed benchmarks and methodology, please refer to the CATS [preprint](test) (coming soon)
 
 # Installation 
 
@@ -531,7 +531,7 @@ CATS is an academic software distributed under the MIT license.
 
 Copyright © 2025 Kristian Bodulić
 
-if you use CATS, please cite the CATS preprint:
+if you use CATS, please cite the CATS [preprint](test):
 
 (coming soon)
 
