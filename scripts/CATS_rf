@@ -51,7 +51,7 @@ usage () {
  echo "-o: CATS-rf output file prefix, default: TRANSCRIPTOME" >&2
  echo "-O: Overwrite the CATS-rf output directory, default: off" >&2
  echo "-h: Show usage information" >&2
- exit 1
+ exit 0
 }
 
 #Adding date and time to log messages (function)
@@ -272,7 +272,6 @@ while getopts ":C:S:Q:R:N:m:s:i:p:r:l:n:k:z:u:w:e:I:A:P:L:K:Z:U:E:d:x:X:c:y:f:F:
   h) usage
      ;;
   ?) write_log ERROR "Unknown flag supplied: -${OPTARG}"
-     usage
      ;;
  esac
 done
