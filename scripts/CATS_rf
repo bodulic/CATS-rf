@@ -142,6 +142,9 @@ filter_by_id () {
 }
 export -f filter_by_id
 
+#Checking executable requirements
+check_executable R bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
+
 #Defining default parameters
 LIB_CONF="pe"
 STRANDNESS="u"
@@ -290,9 +293,6 @@ exec 2> >(tee "$LOG_FILE" >&3)
 
 #Printing welcome message
 echo "Welcome to CATS-rf transcriptome assembly quality assessment tool (version 1.0.0). Find us on https://github.com/bodulic/CATS-rf/tree/main"
-
-#Checking executable requirements
-check_executable R bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
 
 #Checking the library configuration argument
 if [[ "${LIB_CONF}" != "pe" && "${LIB_CONF}" != "se" ]]
