@@ -465,7 +465,7 @@ fi
 cd "${OUT_DIR}"
 
 #Writing the script call to file
-echo "${CALL}" > call.log
+echo "${CALL}" > call_log
 
 #Cleaning up transcript headers and lowercasing N bases
 sed -r 's/^(>\S+)\s.*/\1/' "${TRANSCRIPTOME}" | sed -e '/^[^>]/s/N/n/g' > "${TRANSCRIPTOME}_onew_h"
@@ -476,7 +476,6 @@ write_log INFO "Calculating general transcriptome assembly statistics"
 awk '/^>/ { if (seq) print name "\t" length(seq); name = substr($0, 2); seq = ""; next } { seq = seq $0 } END { print name "\t" length(seq) }' "${TRANSCRIPTOME}_onew_h" > "${TRANSCRIPTOME}_lengths.tsv"
 CATS_general_assembly_stats.R "${THREAD_N}" "${TRANSCRIPTOME}_lengths.tsv" "${OUT_PREF}" 2> general_assembly_stats_log
 check_exit_status "General transcriptome assembly statistics calculation failed. Check the general_assembly_stats_log file"
-rm general_assembly_stats_log
 
 GC_CONTENT="$(awk '!/^>/ { gc_con += gsub(/[cCgG]/, ""); at_con += gsub(/[tTaA]/, ""); } END { printf "%.2f%%\n", (100 * gc_con) / (gc_con + at_con); }' "${TRANSCRIPTOME}_onew_h")"
 echo -e "GC content (%)\t${GC_CONTENT}" >> "${OUT_PREF}_general_statistics_table.tsv"
@@ -519,23 +518,21 @@ fi
 write_log INFO "Building Bowtie2 index"
 bowtie2-build --seed "${SEED}" --threads "${THREAD_N}" "${TRANSCRIPTOME}_onew_h" "${OUT_PREF}_index" &> bowtie2_build_log
 check_exit_status "Building Bowtie2 index failed. Check the bowtie2_build_log file"
-rm bowtie2_build_log
 
 #Read mapping with Bowtie2
 write_log INFO "Mapping reads to transcripts"
 if [[ "${LIB_CONF}" = "pe" ]]
 then
- bowtie2 -k "${READ_MAP_N}" --mp 2,2 --no-unal ${FASTA_ARG} --phred"${QUALITY_ENC}" --seed "${SEED}" --threads "${THREAD_ADJ_N}" -x "${OUT_PREF}_index" -1 "mod_${READS1}" -2 "mod_${READS2}" 2> bowtie2_log | samtools view -b -h -@ "${THREAD_ADJ2_N}" -o "${OUT_PREF}.bam"
+ bowtie2 -k "${READ_MAP_N}" --mp 2,2 --no-unal ${FASTA_ARG} --phred"${QUALITY_ENC}" --seed "${SEED}" --threads "${THREAD_ADJ_N}" -x "${OUT_PREF}_index" -1 "mod_${READS1}" -2 "mod_${READS2}" 2> bowtie2_log | samtools view -b -h -@ "${THREAD_ADJ2_N}" -o "${OUT_PREF}.bam" 2> samtools_log
 else
- bowtie2 -k "${READ_MAP_N}" --mp 2,2 --no-unal ${FASTA_ARG} --phred"${QUALITY_ENC}" --seed "${SEED}" --threads "${THREAD_ADJ_N}" -x "${OUT_PREF}_index" -U "mod_${READS1}" 2> bowtie2_log | samtools view -b -h -@ "${THREAD_ADJ2_N}" -o "${OUT_PREF}.bam"
+ bowtie2 -k "${READ_MAP_N}" --mp 2,2 --no-unal ${FASTA_ARG} --phred"${QUALITY_ENC}" --seed "${SEED}" --threads "${THREAD_ADJ_N}" -x "${OUT_PREF}_index" -U "mod_${READS1}" 2> bowtie2_log | samtools view -b -h -@ "${THREAD_ADJ2_N}" -o "${OUT_PREF}.bam" 2> samtools_log
 fi
-check_exit_status "Read mapping failed. Check the bowtie2_log file"
+check_exit_status "Read mapping failed. Check the bowtie2_log and samtools_log files"
 rm "${OUT_PREF}_index"*
 
 #Extracting read mapping rate
 READ_MAPPING_RATE="$(awk '/overall/ {print $1}' bowtie2_log)"
 echo -e "% of reads mapping to the assembly\t${READ_MAPPING_RATE}" >> "${OUT_PREF}_general_statistics_table.tsv"
-rm bowtie2_log
 
 #Determining library strandness in auto-detection mode
 if [[ "${LIB_CONF}" = "pe" && "${STRANDNESS}" = "a" ]]
@@ -572,7 +569,6 @@ fi
 write_log INFO "Building kallisto index"
 kallisto index -t "${THREAD_N}" -i "${OUT_PREF}_kallisto_index" "${TRANSCRIPTOME}_onew_h" &> kallisto_index_log
 check_exit_status "Building kallisto index failed. Check the kallisto_index_log file"
-rm kallisto_index_log
 
 #Defining strandness for kallisto
 if [[ "${LIB_CONF}" = "pe" ]]
@@ -594,11 +590,11 @@ if [[ "${LIB_CONF}" = "pe" ]]
 then
  kallisto quant ${STRANDNESS_KAL} --seed="${SEED}" -t "${THREAD_N}" -i "${OUT_PREF}_kallisto_index" -o . "mod_${READS1}" "mod_${READS2}" 2> kallisto_log
  check_exit_status "Transcript quantification failed. Check the kallisto_log file"
- rm "mod_${READS1}" "mod_${READS2}" "${OUT_PREF}_kallisto_index" abundance.h5 run_info.json kallisto_log
+ rm "mod_${READS1}" "mod_${READS2}" "${OUT_PREF}_kallisto_index" abundance.h5 run_info.json
 else
  kallisto quant --single --seed="${SEED}" -l "${MEAN_INS_SIZE}" -s "${SD_INS_SIZE}" -t "${THREAD_N}" -i "${OUT_PREF}_kallisto_index" -o . "mod_${READS1}" 2> kallisto_log
  check_exit_status "Transcript quantification failed. Check the kallisto_log file"
- rm "mod_${READS1}" "${OUT_PREF}_kallisto_index" abundance.h5 run_info.json kallisto_log
+ rm "mod_${READS1}" "${OUT_PREF}_kallisto_index" abundance.h5 run_info.json
 fi
 
 cut -f 1,5 abundance.tsv > "${OUT_PREF}_abundance_tpm.tsv" && rm abundance.tsv
@@ -627,7 +623,7 @@ else
  parallel --pipepart --block "${MEMORY_BLOCK}" -j "${THREAD_N}" -a "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" CATS_rf_read_assignment_se.R "${EDIT_DIST_FACT}" "${SEED}" "${OUT_PREF}" > "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" 2> read_assignment_log
 fi
 check_exit_status "Read assignment failed. Check the read_assignment_log file"
-rm "${OUT_PREF}_abundance_tpm.tsv" "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" read_assignment_log
+rm "${OUT_PREF}_abundance_tpm.tsv" "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 
 #Filtering multimapped reads based on read assignment
 write_log INFO "Filtering multimapped reads based on read assignment"
@@ -642,8 +638,8 @@ if [[ "${LIB_CONF}" = "pe" ]]
 then
  write_log INFO "Preparing prerequisites for paired-end read analysis"
  cat "${OUT_PREF}_bam_header" "${OUT_PREF}_sampled_mappings.sam" | samtools view -b -h -@ "${THREAD_ADJ3_N}" - | samtools sort -@ "${THREAD_ADJ3_N}" -o "sorted_${OUT_PREF}_sampled_mappings.bam" 2> /dev/null
- bamToBed -i "sorted_${OUT_PREF}_sampled_mappings.bam" | awk -v OFS='\t' '{print $4, $1, $2 + 1, $3, $6}' |  awk -v OFS='\t' '{sub(/\/.*/, "", $1)} 1' > "${OUT_PREF}_sampled_mappings.bed"
- check_exit_status "Bedtools (bamToBed) failed"
+ bamToBed -i "sorted_${OUT_PREF}_sampled_mappings.bam" | awk -v OFS='\t' '{print $4, $1, $2 + 1, $3, $6}' |  awk -v OFS='\t' '{sub(/\/.*/, "", $1)} 1' > "${OUT_PREF}_sampled_mappings.bed" 2> bedtools_log
+ check_exit_status "Bedtools (bamToBed) failed. Check the bedtools_log file"
  rm "sorted_${OUT_PREF}_sampled_mappings.bam"
 fi
 
@@ -666,15 +662,15 @@ rm "${OUT_PREF}_bam_header"
 #Calculating per-base coverage and accuracy
 write_log INFO "Calculating per-base coverage and accuracy"
 samtools faidx "${TRANSCRIPTOME}_onew_h"
-ls sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.bam" | parallel "pysamstats -t variation -S nofilter -f \"${TRANSCRIPTOME}_onew_h\" {} | cut -f 1,2,4,6,12 > {/.}_pysam_out"
-check_exit_status "Calculating per-base coverage and accuracy with pysamstats failed"
+ls sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.bam" | parallel "pysamstats -t variation -S nofilter -f \"${TRANSCRIPTOME}_onew_h\" {} | cut -f 1,2,4,6,12 > {/.}_pysam_out" 2> pysamstats_log
+check_exit_status "Calculating per-base coverage and accuracy with pysamstats failed. Check the pysamstats_log file"
 rm "${TRANSCRIPTOME}_onew_h" sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.bam" sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings.bam.bai" "${TRANSCRIPTOME}_onew_h.fai"
 
 #Adding uncovered bases to pysamstats output
 write_log INFO "Preparing for coverage and accuracy analysis"
 ls sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out" | parallel -j "${SPLIT_N}" "cat {} | CATS_rf_add_uncovered_bases.R \"${TRANSCRIPTOME}_lengths.tsv\" > {}_with_uncov_bases" 2> add_uncovered_bases_log
 check_exit_status "Adding uncovered bases to pysamstats output failed. Check the add_uncovered_bases_log file"
-rm sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out" add_uncovered_bases_log
+rm sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out"
 ls sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out_with_uncov_bases" | xargs cat > "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete"
 rm sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out_with_uncov_bases"
 
@@ -684,7 +680,6 @@ if [[ -s "${OUT_PREF}_uncovered_transcript_lengths" ]]
 then
  CATS_rf_add_uncovered_transcripts.R "${THREAD_N}" "${OUT_PREF}_uncovered_transcript_lengths" "${OUT_PREF}" 2> add_uncovered_transcripts_log
  check_exit_status "Adding uncovered transcripts to pysamstats output failed. Check the add_uncovered_transcripts_log file"
- rm add_uncovered_transcripts_log
  cat "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete" "${OUT_PREF}_uncov_trans" > "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
  rm "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete" "${OUT_PREF}_uncov_trans"
 else
@@ -702,7 +697,7 @@ rm "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr" x[0-9][0-9]
 write_log INFO "Running coverage and accuracy analysis"
 CATS_rf_cov_acc_analysis.R "${OUT_PREF}" "${THREAD_N}" "${COV_PROP_BREAKS}" "${TR_COV_MEAN_BREAKS}" "${BASE_COV_BREAKS}" "${LOCAL_COV_WINDOW_SIZE}" "${LOCAL_COV_THR}" "${LCR_PROP_BREAKS}" "${BASE_COV_WEIGHT}" "${LCR_EX_PEN}" "${POS_REL_COV_PROP}" "${COV_MEAN_END_PROP}" "${POS_ACC_PROP}" "${BASE_ACC_THR}" "${ACC_BASE_PROP_BREAKS}" "${BASE_ACC_BREAKS}" "${LOCAL_ACC_WINDOW_SIZE}" "${LOCAL_ACC_THR}" "${LAR_PROP_BREAKS}" "${LAR_EX_PEN}" 2> cov_acc_analysis_log
 check_exit_status "Coverage and accuracy analysis failed. Check the cov_acc_analysis_log file"
-rm x[0-2][0-9]"_sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr" cov_acc_analysis_log
+rm x[0-2][0-9]"_sorted_${OUT_PREF}_pysam_out_with_uncov_bases_and_uncov_tr"
 
 #Preparing for paired-end read analysis
 if [[ "${LIB_CONF}" = "pe" ]]
@@ -719,13 +714,12 @@ then
  write_log INFO "Performing paired-end read analysis"
  CATS_rf_paired_end_read_analysis.R "${THREAD_N}" "${TRANSCRIPTOME}_lengths.tsv" "${INCOMP_BRIDGE_TR_END_DIST}" "${STRANDNESS}" "${DIST_THR_CORR_FACT}" "${DIST_THR_FACT_LOWER}" "${DIST_THR_FACT_HIGHER}" "${OUT_PREF}" "${IMP_WITHIN_READ_PROP_BREAKS}" "${DIFF_TR_PAIR_READ_PROP_BREAKS}" "${ALPHA_COMP_FACT}" "${BETA_COMP_FACT}" "${FRAG_TR_BRIDGE_N}" 2> paired_end_analysis_log
  check_exit_status "Paired-end read analysis failed. Check the paired_end_analysis_log file"
- rm "${TRANSCRIPTOME}_lengths.tsv" x[0-9][0-9] paired_end_analysis_log
+ rm "${TRANSCRIPTOME}_lengths.tsv" x[0-9][0-9]
 
 #Generating transcriptome assembly scores
  write_log INFO "Generating transcriptome assembly scores"
  CATS_rf_generate_assembly_score.R "${THREAD_N}" "${OUT_PREF}_coverage_stats.tsv" "${OUT_PREF}" 2> generate_assem_score_log
  check_exit_status "Generating transcriptome assembly scores failed. Check the generate_assem_score_log file"
- rm generate_assem_score_log
 
 #Writing the main results to standard output
  echo ""
@@ -736,6 +730,10 @@ else
  echo "----- Coverage and accuracy analysis summary -----"
  cat "${OUT_PREF}_coverage_and_accuracy_analysis_summary.tsv"
 fi
+
+#Moving logs into a separate directory
+mkdir logs
+mv call_log general_assembly_stats_log bowtie2_build_log bowtie2_log samtools_log kallisto_index_log kallisto_log read_assignment_log bedtools_log pysamstats_log add_uncovered_bases_log add_uncovered_transcripts_log cov_acc_analysis_log paired_end_analysis_log generate_assem_score_log logs
 
 #Exiting
 write_log INFO "Thank you for using CATS-rf! The CATS-rf transcriptome assembly quality assessment output can be found in ${OUT_DIR}"

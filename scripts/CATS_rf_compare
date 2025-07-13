@@ -173,7 +173,7 @@ check_exit_status "Creating the output directory failed"
 cd "${OUT_DIR}"
 
 #Writing the script call to file
-echo "${CALL}" > call.log
+echo "${CALL}" > call_log
 
 #Preparing CATS-rf files for comparison
 write_log INFO "Preparing CATS-rf files for comparison"
@@ -209,11 +209,15 @@ cp $(which CATS_rf_comparison.Rmd) .
 
 #Comparing transcriptome assemblies
 write_log INFO "Comparing transcriptome assemblies"
-Rscript -e "rmarkdown::render(input='CATS_rf_comparison.Rmd',output_file='CATS_rf_comparison.html')"
-check_exit_status "Transcriptome assembly comparison failed"
+Rscript -e "rmarkdown::render(input='CATS_rf_comparison.Rmd',output_file='CATS_rf_comparison.html')" 2> cats_rf_compare_log
+check_exit_status "Transcriptome assembly comparison failed. Check the cats_rf_compare_log file"
 
 #Cleaning up
 rm *"general_statistics_table.tsv" *"coverage_stats.tsv" *"per_base_coverage_distribution.tsv" *"relative_coverage_median_by_transcript_position.tsv" *"lcr_list.tsv" *"accuracy_stats.tsv" *"per_base_accuracy_distribution.tsv" *"accuracy_median_by_transcript_position.tsv" *"lar_list.tsv" *"coverage_and_accuracy_analysis_summary.tsv" *"local_fidelity_stats.tsv" *"integrity_stats.tsv" *"paired_end_read_analysis_summary.tsv" *"transcript_scores.tsv" *"assembly_score_summary.tsv" ext_args CATS_rf_comparison.Rmd
+
+#Moving logs into a separate directory
+mkdir logs
+mv call_log cats_rf_compare_log logs
 
 #Exiting
 write_log INFO "Thank you for using CATS-rf! The CATS-rf transcriptome assembly comparison output can be found in ${OUT_DIR}"
