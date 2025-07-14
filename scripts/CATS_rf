@@ -149,7 +149,7 @@ filter_by_id () {
  local ID_FILE="${2}"
  local FILE_TO_FILTER="${3}"
  local FILTER_OUTPUT="${4}"
- awk -v col="${FILTER_COL_N}" 'NR==FNR { filter_keys[$1]; next } ($col in filter_keys)' "${ID_FILE}" "${FILE_TO_FILTER}" > "${FILTER_OUTPUT}"
+ gawk -v col="${FILTER_COL_N}" 'NR==FNR { filter_keys[$1]; next } ($col in filter_keys)' "${ID_FILE}" "${FILE_TO_FILTER}" > "${FILTER_OUTPUT}"
 }
 export -f filter_by_id
 
@@ -487,11 +487,11 @@ sed -r 's/^(>\S+)\s.*/\1/' "${TRANSCRIPTOME}" | sed -e '/^[^>]/s/N/n/g' > "${TRA
 
 #Calculating general transcriptome assembly statistics
 write_log INFO "Calculating general transcriptome assembly statistics"
-awk '/^>/ { if (seq) print name "\t" length(seq); name = substr($0, 2); seq = ""; next } { seq = seq $0 } END { print name "\t" length(seq) }' "${TRANSCRIPTOME}_onew_h" > "${TRANSCRIPTOME}_lengths.tsv"
+gawk '/^>/ { if (seq) print name "\t" length(seq); name = substr($0, 2); seq = ""; next } { seq = seq $0 } END { print name "\t" length(seq) }' "${TRANSCRIPTOME}_onew_h" > "${TRANSCRIPTOME}_lengths.tsv"
 CATS_general_assembly_stats.R "${THREAD_N}" "${TRANSCRIPTOME}_lengths.tsv" "${OUT_PREF}" 2> general_assembly_stats_log
 check_exit_status "General transcriptome assembly statistics calculation failed. Check the general_assembly_stats_log file"
 
-GC_CONTENT="$(awk '!/^>/ { gc_con += gsub(/[cCgG]/, ""); at_con += gsub(/[tTaA]/, ""); } END { printf "%.2f%%\n", (100 * gc_con) / (gc_con + at_con); }' "${TRANSCRIPTOME}_onew_h")"
+GC_CONTENT="$(gawk '!/^>/ { gc_con += gsub(/[cCgG]/, ""); at_con += gsub(/[tTaA]/, ""); } END { printf "%.2f%%\n", (100 * gc_con) / (gc_con + at_con); }' "${TRANSCRIPTOME}_onew_h")"
 echo -e "GC content (%)\t${GC_CONTENT}" >> "${OUT_PREF}_general_statistics_table.tsv"
 
 #Processing the supplied reads
@@ -505,22 +505,22 @@ fi
 
 if [[ "$("${READ_FILE_COMMAND}" "${READS1}" | head -c 1)" = "@" ]]
 then
- "${READ_FILE_COMMAND}" "${READS1}" | awk '{print (NR%4 == 1) ? "@1_" ++i : $0}' > "mod_${READS1}"
+ "${READ_FILE_COMMAND}" "${READS1}" | gawk '{print (NR%4 == 1) ? "@1_" ++i : $0}' > "mod_${READS1}"
  if [[ "${LIB_CONF}" = "pe" ]]
  then
-  "${READ_FILE_COMMAND}" "${READS2}" | awk '{print (NR%4 == 1) ? "@2_" ++i : $0}' > "mod_${READS2}"
+  "${READ_FILE_COMMAND}" "${READS2}" | gawk '{print (NR%4 == 1) ? "@2_" ++i : $0}' > "mod_${READS2}"
   [[ -L "${READS2}" ]] && rm "${READS2}"
  fi
- EDIT_DIST_FACT=$(head -n 40000 "mod_${READS1}" | awk 'NR%4 == 2 {print length}' | awk '{ total += $1 } END { print 0.1 * total / NR}')
+ EDIT_DIST_FACT=$(head -n 40000 "mod_${READS1}" | gawk 'NR%4 == 2 {print length}' | gawk '{ total += $1 } END { print 0.1 * total / NR}')
 elif [[ "$("${READ_FILE_COMMAND}" "${READS1}" | head -c 1)" = ">" ]]
 then
- "${READ_FILE_COMMAND}" "${READS1}" | awk '{print (NR%2 == 1) ? ">1_" ++i : $0}' > "mod_${READS1}"
+ "${READ_FILE_COMMAND}" "${READS1}" | gawk '{print (NR%2 == 1) ? ">1_" ++i : $0}' > "mod_${READS1}"
  if [[ "${LIB_CONF}" = "pe" ]]
  then
-  "${READ_FILE_COMMAND}" "${READS2}" | awk '{print (NR%2 == 1) ? ">2_" ++i : $0}'  > "mod_${READS2}"
+  "${READ_FILE_COMMAND}" "${READS2}" | gawk '{print (NR%2 == 1) ? ">2_" ++i : $0}'  > "mod_${READS2}"
   [[ -L "${READS2}" ]] && rm "${READS2}"
  fi
- EDIT_DIST_FACT=$(head -n 20000 "mod_${READS1}" | awk 'NR%2 == 0 {print length}' | awk '{ total += $1 } END { print 0.1 * total / NR}')
+ EDIT_DIST_FACT=$(head -n 20000 "mod_${READS1}" | gawk 'NR%2 == 0 {print length}' | gawk '{ total += $1 } END { print 0.1 * total / NR}')
  FASTA_ARG="-f"
 else
  write_log ERROR "Please provide read files in a suitable format (fastq or fasta)"
@@ -545,14 +545,14 @@ check_exit_status "Read mapping failed. Check the bowtie2_log and samtools_log f
 rm "${OUT_PREF}_index"*
 
 #Extracting read mapping rate
-READ_MAPPING_RATE="$(awk '/overall/ {print $1}' bowtie2_log)"
+READ_MAPPING_RATE="$(gawk '/overall/ {print $1}' bowtie2_log)"
 echo -e "% of reads mapping to the assembly\t${READ_MAPPING_RATE}" >> "${OUT_PREF}_general_statistics_table.tsv"
 
 #Determining library strandness in auto-detection mode
 if [[ "${LIB_CONF}" = "pe" && "${STRANDNESS}" = "a" ]]
 then
     STRANDNESS="$(samtools view "${OUT_PREF}.bam" | head -n 100000 | \
-    awk '{
+    gawk '{
         flag = $2;
         strand = (and(flag, 16) ? "-" : "+");
         is_first = and(flag, 64);
@@ -623,8 +623,8 @@ then
 else
  mv "${OUT_PREF}_read_tr_table" "${OUT_PREF}_read_tr_table_pair_N_frag_id"
 fi
-awk -F '\t' 'NR > 0 {$0 = $0 "\t" NR} 1' "${OUT_PREF}_read_tr_table_pair_N_frag_id" > "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N" && rm "${OUT_PREF}_read_tr_table_pair_N_frag_id"
-samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | cut -f 12- | awk '{for (i = 1; i <= NF; i++) {if ($i ~ /^NM/) {print $i}}}'| sed 's/.*://' | paste "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N" - > "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" && rm "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N"
+gawk -F '\t' 'NR > 0 {$0 = $0 "\t" NR} 1' "${OUT_PREF}_read_tr_table_pair_N_frag_id" > "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N" && rm "${OUT_PREF}_read_tr_table_pair_N_frag_id"
+samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | cut -f 12- | gawk '{for (i = 1; i <= NF; i++) {if ($i ~ /^NM/) {print $i}}}'| sed 's/.*://' | paste "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N" - > "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" && rm "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N"
 sort -n -k 4 -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 check_sorted_files "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" 4
 
@@ -643,7 +643,7 @@ rm "${OUT_PREF}_abundance_tpm.tsv" "sorted_${OUT_PREF}_read_tr_table_pair_N_frag
 write_log INFO "Filtering multimapped reads based on read assignment"
 sort -n -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 check_sorted_files "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" 1
-samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | awk 'NR == FNR {data[$1]; next} FNR in data' "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" -  | awk -F "\t" '!seen[$1, $3]++' > "${OUT_PREF}_sampled_mappings.sam" && rm "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | gawk 'NR == FNR {data[$1]; next} FNR in data' "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" -  | gawk -F "\t" '!seen[$1, $3]++' > "${OUT_PREF}_sampled_mappings.sam" && rm "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 samtools view -H -@ "${THREAD_N}" "${OUT_PREF}.bam" > "${OUT_PREF}_bam_header"
 rm "${OUT_PREF}.bam"
 
@@ -652,7 +652,7 @@ if [[ "${LIB_CONF}" = "pe" ]]
 then
  write_log INFO "Preparing prerequisites for paired-end read analysis"
  cat "${OUT_PREF}_bam_header" "${OUT_PREF}_sampled_mappings.sam" | samtools view -b -h -@ "${THREAD_ADJ3_N}" - | samtools sort -@ "${THREAD_ADJ3_N}" -o "sorted_${OUT_PREF}_sampled_mappings.bam" 2> /dev/null
- bamToBed -i "sorted_${OUT_PREF}_sampled_mappings.bam" | awk -v OFS='\t' '{print $4, $1, $2 + 1, $3, $6}' |  awk -v OFS='\t' '{sub(/\/.*/, "", $1)} 1' > "${OUT_PREF}_sampled_mappings.bed" 2> bedtools_log
+ bamToBed -i "sorted_${OUT_PREF}_sampled_mappings.bam" | gawk -v OFS='\t' '{print $4, $1, $2 + 1, $3, $6}' |  gawk -v OFS='\t' '{sub(/\/.*/, "", $1)} 1' > "${OUT_PREF}_sampled_mappings.bed" 2> bedtools_log
  check_exit_status "Bedtools (bamToBed) failed. Check the bedtools_log file"
  rm "sorted_${OUT_PREF}_sampled_mappings.bam"
 fi
@@ -689,7 +689,7 @@ ls sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out_with_uncov_bases" 
 rm sorted_x[0-2][0-9]_"${OUT_PREF}_sampled_mappings_pysam_out_with_uncov_bases"
 
 #Adding uncovered transcripts to pysamstats output
-cut -f 1 "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete" | uniq | awk 'FNR == NR { a[$1]; next } !($1 in a)' - "${TRANSCRIPTOME}_lengths.tsv" > "${OUT_PREF}_uncovered_transcript_lengths"
+cut -f 1 "sorted_${OUT_PREF}_pysam_out_with_uncov_bases_complete" | uniq | gawk 'FNR == NR { a[$1]; next } !($1 in a)' - "${TRANSCRIPTOME}_lengths.tsv" > "${OUT_PREF}_uncovered_transcript_lengths"
 if [[ -s "${OUT_PREF}_uncovered_transcript_lengths" ]]
 then
  CATS_rf_add_uncovered_transcripts.R "${THREAD_N}" "${OUT_PREF}_uncovered_transcript_lengths" "${OUT_PREF}" 2> add_uncovered_transcripts_log
