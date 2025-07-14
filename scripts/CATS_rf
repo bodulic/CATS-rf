@@ -74,6 +74,17 @@ check_executable () {
  done
 }
 
+#Checking R package installation (function)
+check_r_package() {
+ for R_PACKAGE in "${@}"
+ do
+  Rscript -e "if (!requireNamespace('${R_PACKAGE}', quietly=T)) quit(status=1)" >/dev/null 2>&1 || {
+   write_log ERROR "R package ${R_PACKAGE} could not be found"
+   exit 1
+  }
+ done
+}
+
 #Checking the supplied files (function)
 check_files() {
  for FILE in "${@}"
@@ -143,7 +154,10 @@ filter_by_id () {
 export -f filter_by_id
 
 #Checking executable requirements
-check_executable R bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
+check_executable Rscript bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
+
+#Checking R package requirements
+check_r_package data.table
 
 #Defining default parameters
 LIB_CONF="pe"
