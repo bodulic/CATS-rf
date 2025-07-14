@@ -34,16 +34,34 @@ CATS-rf consistently displays stronger performance than currently existing refer
 
 # Installation 
 
-## Compatibility
+## Installing CATS-rf via conda
 
-### Linux and Windows
+CATS-rf and its dependencies can be directly installed via [Bioconda](https://bioconda.github.io/):
 
-For the best compatibility and performance, we recommend running CATS-rf on:
-- Any modern Linux distribution (e.g. Ubuntu, Debian, Fedora, etc.)
-- WSL (i.e. Ubuntu on Windows)
+(coming soon)
+
+## Installing CATS-rf from source
+
+CATS-rf consists of Bash and R scripts located in the `scripts` directory of this repository. After cloning the repository, all CATS-rf scripts must be included in the `PATH` environment variable.
+The following dependencies are required:
+
+| **Dependency**      | **Tested Version** | **Homepage**                                   | **Conda Installation**                    |
+|---------------------|--------------------|------------------------------------------------|-------------------------------------------|
+| R                   | 4.4.2              | https://www.r-project.org                      | `conda install conda-forge::r-base`       |
+| data.table (R)      | 1.16.4             | https://cran.r-project.org/package=data.table  | `conda install conda-forge::r-data.table` |
+| Bowtie2             | 2.5.4              | https://github.com/BenLangmead/bowtie2         | `conda install -c bioconda bowtie2`       |
+| Samtools            | 1.21               | https://www.htslib.org                         | `conda install -c bioconda samtools`      |
+| kallisto            | 0.50.1             | https://github.com/pachterlab/kallisto         | `conda install -c bioconda kallisto`      |
+| GNU Parallel        | 20220922           | https://www.gnu.org/software/parallel          | `conda install conda-forge::parallel`     |
+| bedtools (bamToBed) | 2.31.1             | https://github.com/arq5x/bedtools2             | `conda install -c bioconda bedtools`      |
+| pysamstats          | 1.1.2              | https://github.com/alimanfoo/pysamstats        | `conda install -c bioconda pysamstats`    |
+
+R, Bowtie2, Samtools, kallisto, GNU Parallel, bedtools (bamToBed), and pysamstats executables must be included in `PATH`. R package data.table can be installed via conda or directly in R with `install.packages("data.table")`
+
+pysamstats was tested with Python 3.12.8 and is compatible with Python versions from 3.6 up to 3.12.8.
 
 ### MacOS
-If you are using MacOS, Bash (version >= 4.0) and GNU versions of core utilities are required. In this case, the `PATH` environment variable should be adjusted so that CATS-rf uses GNU versions of core utilities:
+If you are using MacOS, Bash (version >= 4.0) and GNU versions of core utilities are required. In this case, `PATH` should be adjusted so that CATS-rf uses GNU versions of core utilities:
 
 - Install Bash ≥ 4.0 via [Homebrew](https://formulae.brew.sh/formula/bash):
 
@@ -51,7 +69,7 @@ If you are using MacOS, Bash (version >= 4.0) and GNU versions of core utilities
 brew install bash
 ```
 
-- Install GNU core utilities:
+- Install GNU utilities:
 
 ```bash
 brew install coreutils gnu-sed gawk
@@ -80,32 +98,6 @@ bash CATS_rf
 ```
 
 The stated changes can be made permanent by modifying the appropriate .rc file. 
-
-## Installing CATS-rf via conda
-
-CATS-rf and its dependencies can be directly installed via [Bioconda](https://bioconda.github.io/):
-
-(coming soon)
-
-## Installing CATS-rf from source
-
-CATS-rf consists of Bash and R scripts located in the `scripts` directory of this repository. After cloning the repository, all CATS-rf scripts must be included in `PATH`.
-The following dependencies are required:
-
-| **Dependency**      | **Tested Version** | **Homepage**                                   | **Conda Installation**                    |
-|---------------------|--------------------|------------------------------------------------|-------------------------------------------|
-| R                   | 4.4.2              | https://www.r-project.org                      | `conda install conda-forge::r-base`       |
-| data.table (R)      | 1.16.4             | https://cran.r-project.org/package=data.table  | `conda install conda-forge::r-data.table` |
-| Bowtie2             | 2.5.4              | https://github.com/BenLangmead/bowtie2         | `conda install -c bioconda bowtie2`       |
-| Samtools            | 1.21               | https://www.htslib.org                         | `conda install -c bioconda samtools`      |
-| kallisto            | 0.50.1             | https://github.com/pachterlab/kallisto         | `conda install -c bioconda kallisto`      |
-| GNU Parallel        | 20220922           | https://www.gnu.org/software/parallel          | `conda install conda-forge::parallel`     |
-| bedtools (bamToBed) | 2.31.1             | https://github.com/arq5x/bedtools2             | `conda install -c bioconda bedtools`      |
-| pysamstats          | 1.1.2              | https://github.com/alimanfoo/pysamstats        | `conda install -c bioconda pysamstats`    |
-
-R, Bowtie2, Samtools, kallisto, GNU Parallel, bedtools (bamToBed), and pysamstats executables must be included in `PATH`. R package data.table can be installed via conda or directly in R with `install.packages("data.table")`
-
-pysamstats vas tested with Python version 3.12.8, but is compatible with Python >= 3.6.
 
 # Test data
 
