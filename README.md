@@ -47,18 +47,17 @@ The following dependencies are required:
 
 | **Dependency**      | **Tested Version** | **Homepage**                                   | **Conda Installation**                    |
 |---------------------|--------------------|------------------------------------------------|-------------------------------------------|
-| R                   | 4.4.2              | https://www.r-project.org                      | `conda install conda-forge::r-base`       |
+| R                   | 4.3.0.-4.4.3       | https://www.r-project.org                      | `conda install conda-forge::r-base`       |
 | data.table (R)      | 1.16.4             | https://cran.r-project.org/package=data.table  | `conda install conda-forge::r-data.table` |
 | Bowtie2             | 2.5.4              | https://github.com/BenLangmead/bowtie2         | `conda install -c bioconda bowtie2`       |
 | Samtools            | 1.21               | https://www.htslib.org                         | `conda install -c bioconda samtools`      |
 | kallisto            | 0.50.1             | https://github.com/pachterlab/kallisto         | `conda install -c bioconda kallisto`      |
 | GNU Parallel        | 20220922           | https://www.gnu.org/software/parallel          | `conda install conda-forge::parallel`     |
 | bedtools (bamToBed) | 2.31.1             | https://github.com/arq5x/bedtools2             | `conda install -c bioconda bedtools`      |
+| python              | 3.6-3.12           | https://github.com/arq5x/bedtools2             | `conda install -c bioconda bedtools`      |
 | pysamstats          | 1.1.2              | https://github.com/alimanfoo/pysamstats        | `conda install -c bioconda pysamstats`    |
 
 R, Bowtie2, Samtools, kallisto, GNU Parallel, bedtools (bamToBed), and pysamstats executables must be included in `PATH`. R package data.table can be installed via conda or directly in R with `install.packages("data.table")`
-
-pysamstats was tested with Python 3.12.8 and is compatible with Python versions from 3.6 up to 3.12.8.
 
 ### MacOS
 If you are using MacOS, Bash (version >= 4.0) and GNU versions of core utilities are required. In this case, `PATH` should be adjusted so that CATS-rf uses GNU versions of core utilities:
@@ -398,7 +397,7 @@ CATS-rf also supports direct comparison of multiple analysed assemblies. The `CA
 
 | **Dependency**           | **Tested Version** | **Homepage**                                     | **Conda Installation**                    | **R installation**               |
 |--------------------------|--------------------|--------------------------------------------------|-------------------------------------------|----------------------------------|
-| R                        | 4.4.2              | https://www.r-project.org                        | `conda install conda-forge::r-base`       | /                                |
+| R                        | 4.3.0.-4.4.3       | https://www.r-project.org                        | `conda install conda-forge::r-base`       | /                                |
 | pandoc                   | 2.19.2             | https://pandoc.org/                              | `conda install conda-forge::pandoc`       | /                                |
 | rmarkdown (R)            | 2.29               | https://cran.r-project.org/package=rmarkdown     | `conda install conda-forge::r-rmarkdown`  | `install.packages("rnarkdown)`   |
 | data.table (R)           | 1.16.4             | https://cran.r-project.org/package=data.table    | `conda install conda-forge::r-data.table` | `install.packages("data.table")` |
