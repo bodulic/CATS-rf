@@ -94,12 +94,6 @@ test_numeric_arg () {
  fi
 }
 
-#Checking executable requirements
-check_executable Rscript pandoc
-
-#Checking R package requirements
-check_r_package rmarkdown knitr data.table ggplot2 ggdist
-
 #Defining default parameters
 FIGURE_EXT="png"
 FIGURE_DPI=600
@@ -145,6 +139,12 @@ while getopts ":x:d:r:l:H:b:q:t:D:Oh" OPT; do
  esac
 done
 shift "$(( OPTIND - 1 ))"
+
+#Checking executable requirements
+check_executable Rscript pandoc
+
+#Checking R package requirements
+check_r_package rmarkdown knitr data.table ggplot2 ggdist
 
 #Displaying usage when calling the script without arguments
 if [[ "${#}" -eq 0 ]]

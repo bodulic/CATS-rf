@@ -153,12 +153,6 @@ filter_by_id () {
 }
 export -f filter_by_id
 
-#Checking executable requirements
-check_executable Rscript bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
-
-#Checking R package requirements
-check_r_package data.table
-
 #Defining default parameters
 LIB_CONF="pe"
 STRANDNESS="u"
@@ -293,6 +287,12 @@ while getopts ":C:S:Q:R:N:m:s:i:p:r:l:n:k:z:u:w:e:I:A:P:L:K:Z:U:E:d:x:X:c:y:f:F:
  esac
 done
 shift "$(( OPTIND - 1 ))"
+
+#Checking executable requirements
+check_executable Rscript bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
+
+#Checking R package requirements
+check_r_package data.table
 
 #Displaying usage when calling the script without arguments
 if [[ "${#}" -eq 0 ]]
