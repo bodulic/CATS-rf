@@ -36,9 +36,11 @@ CATS-rf consistently displays stronger performance than currently existing refer
 
 ## Installing CATS-rf via conda
 
-CATS-rf and its dependencies can be directly installed via [Bioconda](https://bioconda.github.io/):
+CATS-rf and its dependencies can be directly installed via [Bioconda](https://anaconda.org/bioconda/cats-rf):
 
-(coming soon)
+```bash
+conda install -c bioconda cats-rf
+```
 
 ## Installing CATS-rf from source
 
