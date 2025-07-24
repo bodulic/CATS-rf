@@ -533,6 +533,24 @@ if you use CATS, please cite the CATS [preprint](test):
 
 Please report all potential bugs in the Issues tracker.
 
+## Conda installation
+
+In case of dependency conflicts, try setting the following channel priority:
+
+```bash
+conda config --add channels bioconda
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+```
+
+If this does not work, try setting channel priority to flexible:
+
+```bash
+conda config --set channel_priority flexible
+```
+
 # Changelog
 
-Version 1.0.0. Initial commit, July 10, 2025.
+Version 1.0.1: Moved executable and R package testing after the getopts call, July 24, 2025.
+
+Version 1.0.0: Initial commit, July 10, 2025.
