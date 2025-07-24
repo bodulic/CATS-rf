@@ -604,11 +604,11 @@ if [[ "${LIB_CONF}" = "pe" ]]
 then
  kallisto quant ${STRANDNESS_KAL} --seed="${SEED}" -t "${THREAD_N}" -i "${OUT_PREF}_kallisto_index" -o . "mod_${READS1}" "mod_${READS2}" 2> kallisto_log
  check_exit_status "Transcript quantification failed. Check the kallisto_log file"
- rm "mod_${READS1}" "mod_${READS2}" "${OUT_PREF}_kallisto_index" abundance.h5 run_info.json
+ rm "mod_${READS1}" "mod_${READS2}" "${OUT_PREF}_kallisto_index" abundance.h5 run_info.json 2> /dev/null
 else
  kallisto quant --single --seed="${SEED}" -l "${MEAN_INS_SIZE}" -s "${SD_INS_SIZE}" -t "${THREAD_N}" -i "${OUT_PREF}_kallisto_index" -o . "mod_${READS1}" 2> kallisto_log
  check_exit_status "Transcript quantification failed. Check the kallisto_log file"
- rm "mod_${READS1}" "${OUT_PREF}_kallisto_index" abundance.h5 run_info.json
+ rm "mod_${READS1}" "${OUT_PREF}_kallisto_index" abundance.h5 run_info.json 2> /dev/null
 fi
 
 cut -f 1,5 abundance.tsv > "${OUT_PREF}_abundance_tpm.tsv" && rm abundance.tsv
