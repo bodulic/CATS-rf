@@ -31,7 +31,7 @@ CATS-rf is the reference-free module of the CATS (Comprehensive Assessment of Tr
 | Local&nbsp;fidelity&nbsp;component&nbsp;(<i>S<sub>l</sub></i>) | Inconsistent pair mapping within transcripts | Structural errors (e.g. deletions, translocations, inversions...) |
 | Integrity&nbsp;component&nbsp;(<i>S<sub>i</sub></i>)           | Pairs mapping to different transcripts       | Transcript fragmentation                                          |
 
-Transcript quality score S<sub><i>t</i></sub> is calculated as the product of the described score components, equally weighting detected assembly errors. Assembly score <i>S</i> is computed as the mean of individual transcript scores.
+Transcript quality score S<sub><i>t</i></sub> is calculated as the product of the described score components, equally weighting detected assembly errors. Assembly score <i>S</i> is computed as the mean of individual transcript scores. All components and scores are normalized to a range between 0 and 1, where higher values indicate better quality.
 
 In addition to transcript scores, CATS-rf provides a comprehensive set of assembly metrics, including transcript length and composition statistics, read mapping rates, positional coverage and accuracy profiles, and pair mapping consistency metrics.
 
