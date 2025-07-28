@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-brightgreen)
 [![Bioconda](https://img.shields.io/conda/vn/bioconda/cats-rf.svg)](https://anaconda.org/bioconda/cats-rf)
+[![bioRxiv](https://img.shields.io/badge/bioRxiv-10.1101/2025.07.22.666112v1-orange)](https://www.biorxiv.org/content/10.1101/2025.07.22.666112v1)
 
 # Table of Contents
 
@@ -34,7 +35,7 @@ Transcript quality score S<sub><i>t</i></sub> is calculated as the product of th
 
 In addition to transcript scores, CATS-rf provides a comprehensive set of assembly metrics, including transcript length and composition statistics, read mapping rates, positional coverage and accuracy profiles, and pair mapping consistency metrics.
 
-CATS-rf consistently displays stronger performance than currently existing reference-free transcriptome assembly evaluation tools. For detailed benchmarks and methodology, please refer to the CATS [preprint](test) (coming soon)
+CATS-rf consistently displays stronger performance than currently existing reference-free transcriptome assembly evaluation tools. For detailed benchmarks and methodology, please refer to the CATS [preprint](https://www.biorxiv.org/content/10.1101/2025.07.22.666112v1)
 
 # Installation 
 
@@ -525,9 +526,9 @@ CATS is an academic software distributed under the MIT license.
 
 Copyright © 2025 Kristian Bodulić
 
-if you use CATS, please cite the CATS [preprint](test):
+if you use CATS, please cite the CATS [preprint](https://www.biorxiv.org/content/10.1101/2025.07.22.666112v1):
 
-(coming soon)
+Bodulić, K. and Vlahovicek, K. (2025). Comprehensive Transcriptome Quality Assessment Using CATS: Reference‑free and Reference‑based Approaches. bioRxiv. https://doi.org/10.1101/2025.07.22.666112 
 
 # Troubleshooting
 
