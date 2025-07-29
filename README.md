@@ -47,6 +47,8 @@ CATS-rf and its dependencies can be directly installed via [Bioconda](https://an
 conda install -c bioconda cats-rf
 ```
 
+In case of dependency conflicts, please see the Troubleshooting section.
+
 ## Installing CATS-rf from source
 
 CATS-rf consists of Bash and R scripts located in the `scripts` directory of this repository. After cloning the repository, all CATS-rf scripts must be included in the `PATH` environment variable.
