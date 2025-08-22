@@ -99,7 +99,7 @@ analyse_numerical_variable <- function(dt_to_analyse_filename, variable_to_plot,
    stat_halfeye(normalize = "groups", width = 0.9, justification = -0.1, .width = 0, point_colour = NA, alpha = 0.8) +
    geom_boxplot(width = 0.1, outlier.shape = NA, alpha = 0.8) +
    theme_bw() +
-   scale_fill_manual(values = RP_COLORS) +
+   scale_fill_manual(values = RP_COLORS[TRANSCRIPTOME_N : 1]) +
    theme(legend.position = "none") +
    coord_flip() +
    xlab("Transcriptome") +
@@ -118,13 +118,13 @@ analyse_numerical_variable <- function(dt_to_analyse_filename, variable_to_plot,
    guides(color = guide_legend(nrow = ceiling(TRANSCRIPTOME_N / 4), byrow = T)) +
    theme(legend.position = "top") +
    theme(legend.title = element_blank()) +
+   ylim(c(0, 1)) +
    xlab("Transcript length proportion") +
    ylab(plot_axis_title_filename) +
    ggtitle(paste(plot_axis_title_filename, "distribution"))
   ggsave(variable_lp, filename = paste(tolower(gsub(" ", "_", plot_axis_title_filename, fixed =  T)), FIGURE_EXT, sep = "."), height = LP_HEIGHT, width = LP_WIDTH, dpi = FIGURE_DPI)
   
  } else if (plot_type == "histogram") {
-  plotted_value_min <- dt_to_analyse[, min(.SD[[1]], na.rm = T) - 1e-10, .SDcols = variable_to_plot]
   plotted_value_max <- dt_to_analyse[, quantile(.SD[[1]], HI_MAX_QUANTILE, na.rm = T), .SDcols = variable_to_plot]
   dt_to_analyse[, "transcriptome" := factor(transcriptome, levels = transcriptome_names)]
   
@@ -136,7 +136,7 @@ analyse_numerical_variable <- function(dt_to_analyse_filename, variable_to_plot,
    facet_grid(transcriptome ~ .) +
    theme(panel.spacing = unit(0.5, "lines")) +  
    theme(strip.text.y = element_text(angle = 0)) +
-   scale_x_sqrt(limits = c(plotted_value_min, plotted_value_max)) +
+   scale_x_sqrt(limits = c(NA, plotted_value_max)) +
    xlab(plot_axis_title_filename) +
    ylab("Relative frequency") +
    ggtitle(paste(plot_axis_title_filename, "distribution"))
@@ -226,7 +226,7 @@ LP_WIDTH <- LP_HEIGHT + 1.5
 if (TRANSCRIPTOME_N > length(HI_COLORS)) {
  HI_COLORS <- colorRampPalette(HI_COLORS)(TRANSCRIPTOME_N)
 }
-HI_HEIGHT  <- c(5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)[findInterval(TRANSCRIPTOME_N, c(0, 6, 11, 18, 26, 31, 41, 51, 60, 65, 70, 88, 95, 101, 105, Inf))]
+HI_HEIGHT  <- c(5.5, 7, 9, 10, 12.8, 14, 15, 17, 19, 21, 23, 25, 26, 27, 28)[findInterval(TRANSCRIPTOME_N, c(0, 6, 11, 18, 26, 31, 41, 51, 60, 65, 70, 88, 95, 101, 105, Inf))]
 HI_WIDTH <- HI_HEIGHT + 1.5
 BP_BAR_WIDTH <- c(0.25, 0.4, 0.75, 0.8, 0.85)[findInterval(TRANSCRIPTOME_N, c(0, 2, 4, 7, 9, Inf))]
 BP_AXIS_ANGLE <- fifelse(TRANSCRIPTOME_N <= 4, 0, 45)
@@ -339,7 +339,7 @@ knitr::include_graphics(paste("positional_relative_coverage_median", FIGURE_EXT,
 analyse_numerical_variable("coverage_stats.tsv", "uncov_region_length_max", "histogram", "Maximum uncovered region length")
 knitr::include_graphics(paste("maximum_uncovered_region_length", FIGURE_EXT, sep = "."))
 ```
-**Figure 6.** Maximum uncovered region length per transcript distribution.
+**Figure 6.** Maximum uncovered region length per transcript distribution (in bp).
 <br>
 <br>
 
@@ -366,7 +366,7 @@ knitr::include_graphics(paste("proportion_of_bases_in_lcrs", FIGURE_EXT, sep = "
 analyse_numerical_variable("lcr_list.tsv", "lcr_length", "histogram", "LCR length")
 knitr::include_graphics(paste("lcr_length", FIGURE_EXT, sep = "."))
 ```
-**Figure 9.** Low-coverage region length distribution.
+**Figure 9.** Low-coverage region length distribution (in bp).
 <br>
 <br>
 
@@ -420,7 +420,7 @@ knitr::include_graphics(paste("proportion_of_bases_in_lars", FIGURE_EXT, sep = "
 analyse_numerical_variable("lar_list.tsv", "lar_length", "histogram", "LAR length")
 knitr::include_graphics(paste("lar_length", FIGURE_EXT, sep = "."))
 ```
-**Figure 15.** Low-accuracy region length distribution.
+**Figure 15.** Low-accuracy region length distribution (in bp).
 <br>
 <br>
 

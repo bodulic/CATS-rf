@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #Defining usage and exiting (function)
 usage () {
- echo "CATS-rf version 1.0.0 - transcriptome assembly comparison script" >&2
- echo "USAGE ${0} [OPTIONS] CATS_RF_DIR ..." >&2
+ echo "CATS-rf version 1.0.2 - transcriptome assembly comparison script" >&2
+ echo "USAGE ${0} [OPTIONS] CATS_RF_DIR1 ..." >&2
  echo "Graphical options:" >&2
  echo "-x: Figure extension, default: png" >&2
  echo "-d: Figure DPI, default: 600" >&2
@@ -40,7 +40,7 @@ check_executable () {
 }
 
 #Checking R package installation (function)
-check_r_package() {
+check_r_package () {
  for R_PACKAGE in "${@}"
  do
   Rscript -e "if (!requireNamespace('${R_PACKAGE}', quietly=T)) quit(status=1)" >/dev/null 2>&1 || {
@@ -51,7 +51,7 @@ check_r_package() {
 }
 
 #Checking the supplied directories (function)
-check_directories() {
+check_directories () {
  for DIRECTORY in "${@}"
  do
   if [[ -d "${DIRECTORY}" ]]
@@ -158,7 +158,7 @@ exec 3>&2
 exec 2> >(tee "$LOG_FILE" >&3)
 
 #Printing welcome message
-echo "Welcome to CATS-rf transcriptome assembly comparison tool (version 1.0.0). Find us on https://github.com/bodulic/CATS-rf/tree/main"
+echo "Welcome to CATS-rf transcriptome assembly comparison tool (version 1.0.2). Find us on https://github.com/bodulic/CATS-rf"
 
 #Checking the supplied directories
 check_directories "${@}"
@@ -180,6 +180,13 @@ fi
 test_numeric_arg "${FIGURE_DPI}" "FIGURE_DPI" 600 "Supplied an incorrect value for figure DPI, defaulting to 600"
 test_numeric_arg "${HI_MAX_QUANTILE}" "HI_MAX_QUANTILE" 0.98 "Supplied an incorrect value for the maximum right-tail distribution quantile for histograms, defaulting to 0.98"
 test_numeric_arg "${THREAD_N}" "THREAD_N" 10 "Supplied an incorrect value for the number of CPU threads, defaulting to 10"
+
+#Checking the HI_MAX_QUANTILE argument
+if gawk -v num="${HI_MAX_QUANTILE}" 'BEGIN {exit !(num > 1)}'
+then
+ write_log WARNING "Maximum right-tail distribution quantile for histograms should not exceed 1. Defaulting to 1"
+ HI_MAX_QUANTILE=1
+fi
 
 #Creating the output directory
 mkdir "${OUT_DIR}"

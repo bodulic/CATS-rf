@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #Defining usage and exiting (function)
 usage () {
- echo "CATS-rf version 1.0.0 - reference-free transcriptome assembly assessment" >&2
+ echo "CATS-rf version 1.0.2 - reference-free transcriptome assembly assessment" >&2
  echo "USAGE ${0} [OPTIONS] TRANSCRIPTOME READS1 [READS2]" >&2
  echo "Library type options:" >&2
  echo "-C: Paired- vs. single-end library configuration: pe = paired-end, se = single-end, default: pe" >&2
@@ -75,7 +75,7 @@ check_executable () {
 }
 
 #Checking R package installation (function)
-check_r_package() {
+check_r_package () {
  for R_PACKAGE in "${@}"
  do
   Rscript -e "if (!requireNamespace('${R_PACKAGE}', quietly=T)) quit(status=1)" >/dev/null 2>&1 || {
@@ -86,7 +86,7 @@ check_r_package() {
 }
 
 #Checking the supplied files (function)
-check_files() {
+check_files () {
  for FILE in "${@}"
  do
   if [[ -f "${FILE}" ]]
@@ -289,7 +289,7 @@ done
 shift "$(( OPTIND - 1 ))"
 
 #Checking executable requirements
-check_executable Rscript bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
+check_executable gawk Rscript bowtie2-build bowtie2 samtools kallisto parallel bamToBed pysamstats
 
 #Checking R package requirements
 check_r_package data.table
@@ -306,7 +306,7 @@ exec 3>&2
 exec 2> >(tee "$LOG_FILE" >&3)
 
 #Printing welcome message
-echo "Welcome to CATS-rf transcriptome assembly quality assessment tool (version 1.0.0). Find us on https://github.com/bodulic/CATS-rf/tree/main"
+echo "Welcome to CATS-rf transcriptome assembly quality assessment tool (version 1.0.2). Find us on https://github.com/bodulic/CATS-rf"
 
 #Checking the library configuration argument
 if [[ "${LIB_CONF}" != "pe" && "${LIB_CONF}" != "se" ]]
@@ -471,6 +471,7 @@ ln -s -r -t "${OUT_DIR}" "${TRANSCRIPTOME}"
 TRANSCRIPTOME="$(basename "${TRANSCRIPTOME}")"
 ln -s -r -t "${OUT_DIR}" "${READS1}"
 READS1="$(basename "${READS1}")"
+
 if [[ "${LIB_CONF}" = "pe" ]]
 then
  ln -s -r -t "${OUT_DIR}" "${READS2}"
@@ -551,31 +552,30 @@ echo -e "% of reads mapping to the assembly\t${READ_MAPPING_RATE}" >> "${OUT_PRE
 #Determining library strandness in auto-detection mode
 if [[ "${LIB_CONF}" = "pe" && "${STRANDNESS}" = "a" ]]
 then
-    STRANDNESS="$(samtools view "${OUT_PREF}.bam" | head -n 100000 | \
-    gawk '{
-        flag = $2;
-        strand = (and(flag, 16) ? "-" : "+");
-        is_first = and(flag, 64);
-        is_second = and(flag, 128);
-        if (is_first) {
-            first[strand]++;
-        } else if (is_second) {
-            second[strand]++;
-        }
-    }
-    END {
-        total = first["+"] + first["-"] + second["+"] + second["-"];
-        rev_stranded = first["+"] + second["-"];
-        fwd_stranded = first["-"] + second["+"];
-        if (rev_stranded > 0.9 * total) {
-            print "rf";
-        } else if (fwd_stranded > 0.9 * total) {
-            print "fr";
-        } else {
-            print "u";
-        }
-    }')"
-
+ STRANDNESS="$(samtools view "${OUT_PREF}.bam" | head -n 100000 | \
+  gawk '{
+   flag = $2;
+   strand = (and(flag, 16) ? "-" : "+");
+   is_first = and(flag, 64);
+   is_second = and(flag, 128);
+   if (is_first) {
+    first[strand]++;
+   } else if (is_second) {
+    second[strand]++;
+   }
+  }
+  END {
+   total = first["+"] + first["-"] + second["+"] + second["-"];
+   rev_stranded = first["+"] + second["-"];
+   fwd_stranded = first["-"] + second["+"];
+   if (rev_stranded > 0.9 * total) {
+    print "rf";
+   } else if (fwd_stranded > 0.9 * total) {
+    print "fr";
+   } else {
+    print "u";
+   }
+  }')"
  write_log INFO "Detected library strandness: ${STRANDNESS}"
 fi
 
@@ -625,7 +625,7 @@ else
 fi
 gawk -F '\t' 'NR > 0 {$0 = $0 "\t" NR} 1' "${OUT_PREF}_read_tr_table_pair_N_frag_id" > "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N" && rm "${OUT_PREF}_read_tr_table_pair_N_frag_id"
 samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | cut -f 12- | gawk '{for (i = 1; i <= NF; i++) {if ($i ~ /^NM/) {print $i}}}'| sed 's/.*://' | paste "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N" - > "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" && rm "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N"
-sort -n -k 4 -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+sort -n -k 4 -S "${SORT_MEM_PERC}%" --parallel="${THREAD_N}" "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 check_sorted_files "${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" 4
 
 #Performing read assignment
@@ -641,7 +641,7 @@ rm "${OUT_PREF}_abundance_tpm.tsv" "sorted_${OUT_PREF}_read_tr_table_pair_N_frag
 
 #Filtering multimapped reads based on read assignment
 write_log INFO "Filtering multimapped reads based on read assignment"
-sort -n -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
+sort -n -S "${SORT_MEM_PERC}%" --parallel="${THREAD_N}" "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" > "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 check_sorted_files "sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" 1
 samtools view -@ "${THREAD_ADJ_N}" "${OUT_PREF}.bam" | gawk 'NR == FNR {data[$1]; next} FNR in data' "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed" -  | gawk -F "\t" '!seen[$1, $3]++' > "${OUT_PREF}_sampled_mappings.sam" && rm "sorted_sampled_${OUT_PREF}_read_tr_table_pair_N_frag_id_row_N_ed"
 samtools view -H -@ "${THREAD_N}" "${OUT_PREF}.bam" > "${OUT_PREF}_bam_header"
@@ -719,7 +719,7 @@ then
  write_log INFO "Preparing for paired-end read analysis"
  cut -c 1 "${OUT_PREF}_sampled_mappings.bed" | paste "${OUT_PREF}_sampled_mappings.bed"  - > "${OUT_PREF}_sampled_mappings_pair_N" && rm "${OUT_PREF}_sampled_mappings.bed"
  cut -f 1 "${OUT_PREF}_sampled_mappings_pair_N" | cut -c 3- | paste "${OUT_PREF}_sampled_mappings_pair_N"  - | cut  -f 2,3,4,5,6,7 > "${OUT_PREF}_sampled_mappings_pair_N_frag_id" && rm "${OUT_PREF}_sampled_mappings_pair_N"
- sort -n -k 6 -S "${SORT_MEM_PERC}"% --parallel="${THREAD_N}" "${OUT_PREF}_sampled_mappings_pair_N_frag_id" > "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
+ sort -n -k 6 -S "${SORT_MEM_PERC}%" --parallel="${THREAD_N}" "${OUT_PREF}_sampled_mappings_pair_N_frag_id" > "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
  check_sorted_files "${OUT_PREF}_sampled_mappings_pair_N_frag_id" 6
  split --number=l/"${COV_ACC_PAIR_TABLE_SPLIT_N}" -d "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
  rm "sorted_${OUT_PREF}_sampled_mappings_pair_N_frag_id"
@@ -747,7 +747,7 @@ fi
 
 #Moving logs into a separate directory
 mkdir logs
-mv call_log general_assembly_stats_log bowtie2_build_log bowtie2_log samtools_log kallisto_index_log kallisto_log read_assignment_log bedtools_log pysamstats_log add_uncovered_bases_log add_uncovered_transcripts_log cov_acc_analysis_log paired_end_analysis_log generate_assem_score_log logs
+mv call_log general_assembly_stats_log bowtie2_build_log bowtie2_log samtools_log kallisto_index_log kallisto_log read_assignment_log bedtools_log pysamstats_log add_uncovered_bases_log add_uncovered_transcripts_log cov_acc_analysis_log paired_end_analysis_log generate_assem_score_log logs 2> /dev/null
 
 #Exiting
 write_log INFO "Thank you for using CATS-rf! The CATS-rf transcriptome assembly quality assessment output can be found in ${OUT_DIR}"

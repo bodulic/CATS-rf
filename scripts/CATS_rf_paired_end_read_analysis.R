@@ -162,7 +162,6 @@ for (i in 1 : length(files_in_directory)) {
      read_mappings[, "pair_distance" := fifelse(tr_start.x < tr_start.y, tr_start.y - tr_end.x, tr_start.x - tr_end.y)]
     }
     read_mappings[pair_distance < 0, "pair_distance" := 0]
-    read_mappings[, "pair_distance" := abs(pair_distance)]   
         
 #Analysing pair distance distribution from a subset of fragments
     if (is.na(pair_dist_q3))  {

@@ -371,10 +371,8 @@ rm(pos_cov_dt)
 if(lcr_dt[, .N] != 0) {
  setnames(lcr_dt, c("transcript", "lcr_start", "lcr_end", "lcr_length"))
  setorder(lcr_dt, transcript)
- write.table(lcr_dt, file = paste(OUT_PREF, "lcr_list.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
-} else {
- write.table(data.table(), file = paste(OUT_PREF, "lcr_list.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
 }
+write.table(lcr_dt, file = paste(OUT_PREF, "lcr_list.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
 rm(lcr_dt)
 
 #Writing accuracy statistics to file
@@ -413,10 +411,8 @@ rm(pos_acc_dt)
 if(lar_dt[, .N] != 0) {
  setnames(lar_dt, c("transcript", "lar_start", "lar_end", "lar_length"))
  setorder(lar_dt, transcript)
- write.table(lar_dt, file = paste(OUT_PREF, "lar_list.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
-} else {
- write.table(data.table(), file = paste(OUT_PREF, "lar_list.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
 }
+write.table(lar_dt, file = paste(OUT_PREF, "lar_list.tsv", sep = "_"), sep = "\t", row.names = F, col.names = T, quote = F)
 rm(lar_dt)
 
 #Forming the vector with the number of bases with >= coverage than coverage breaks
