@@ -39,6 +39,40 @@ CATS-rf consistently displays stronger performance than currently existing refer
 
 # Installation 
 
+## Running CATS-rf via Docker
+
+Starting from version 1.0.2, CATS-rf can be run using Docker:
+
+Build the Docker image with:
+
+```bash
+docker pull bodulic/cats-rf
+```
+
+Run the container with:
+
+```bash
+docker run --rm -v "$PWD":/data -w /data bodulic/cats-rf CATS_rf
+
+docker run --rm -v "$PWD":/data -w /data bodulic/cats-rf CATS_rf_compare
+```
+
+## Running CATS-rf via Singularity
+
+Build the Singularity image with:
+
+```bash
+singularity build cats_rf.sif docker://bodulic/cats-rf:latest
+```
+
+Run the container with:
+
+```bash
+singularity run cats_rf.sif CATS_rf
+
+singularity run cats_rf.sif CATS_rf_compare
+```
+
 ## Installing CATS-rf via conda
 
 CATS-rf and its dependencies can be directly installed via [Bioconda](https://anaconda.org/bioconda/cats-rf):
@@ -535,6 +569,14 @@ Bodulić, K. and Vlahoviček, K. (2025). Comprehensive Transcriptome Quality Ass
 # Troubleshooting
 
 Please report all potential bugs in the Issues tracker.
+
+## Singularity
+
+If you run into Singularity errors involving the default `TMPDIR` environment variable, set `TMPDIR` to your current working directory so the container uses a writable location for temporary files:
+
+```bash
+TMPDR=$(pwd)
+```
 
 ## Conda installation
 
