@@ -569,9 +569,9 @@ then
    rev_stranded = first["+"] + second["-"];
    fwd_stranded = first["-"] + second["+"];
    if (rev_stranded > 0.9 * total) {
-    print "rf";
-   } else if (fwd_stranded > 0.9 * total) {
     print "fr";
+   } else if (fwd_stranded > 0.9 * total) {
+    print "rf";
    } else {
     print "u";
    }
