@@ -596,6 +596,8 @@ conda config --set channel_priority flexible
 
 # Changelog
 
+Version 1.0.3: Fixed automatic library strandness detection, September 5, 2025.
+
 Version 1.0.2: Added gawk to dependency list. Code polishing, August 22, 2025.
 
 Version 1.0.1: Moved executable and R package testing after the getopts call, July 24, 2025.
