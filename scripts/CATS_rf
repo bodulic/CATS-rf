@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #Defining usage and exiting (function)
 usage () {
- echo "CATS-rf version 1.0.3 - reference-free transcriptome assembly assessment" >&2
+ echo "CATS-rf version 1.0.4 - reference-free transcriptome assembly assessment" >&2
  echo "USAGE ${0} [OPTIONS] TRANSCRIPTOME READS1 [READS2]" >&2
  echo "Library type options:" >&2
  echo "-C: Paired- vs. single-end library configuration: pe = paired-end, se = single-end, default: pe" >&2
@@ -306,7 +306,7 @@ exec 3>&2
 exec 2> >(tee "$LOG_FILE" >&3)
 
 #Printing welcome message
-echo "Welcome to CATS-rf transcriptome assembly quality assessment tool (version 1.0.3). Find us on https://github.com/bodulic/CATS-rf"
+echo "Welcome to CATS-rf transcriptome assembly quality assessment tool (version 1.0.4). Find us on https://github.com/bodulic/CATS-rf"
 
 #Checking the library configuration argument
 if [[ "${LIB_CONF}" != "pe" && "${LIB_CONF}" != "se" ]]
