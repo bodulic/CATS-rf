@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #Defining usage and exiting (function)
 usage () {
- echo "CATS-rf version 1.0.2 - transcriptome assembly comparison script" >&2
+ echo "CATS-rf version 1.0.4 - transcriptome assembly comparison script" >&2
  echo "USAGE ${0} [OPTIONS] CATS_RF_DIR1 ..." >&2
  echo "Graphical options:" >&2
  echo "-x: Figure extension, default: png" >&2
@@ -158,7 +158,7 @@ exec 3>&2
 exec 2> >(tee "$LOG_FILE" >&3)
 
 #Printing welcome message
-echo "Welcome to CATS-rf transcriptome assembly comparison tool (version 1.0.2). Find us on https://github.com/bodulic/CATS-rf"
+echo "Welcome to CATS-rf transcriptome assembly comparison tool (version 1.0.4). Find us on https://github.com/bodulic/CATS-rf"
 
 #Checking the supplied directories
 check_directories "${@}"
